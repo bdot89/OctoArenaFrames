@@ -24,6 +24,7 @@ local function Mover(name, posKey)
   f:SetScript("OnDragStart", function() if not A.db.locked or A.test then this:StartMoving() end end)
   f:SetScript("OnDragStop", function()
     this:StopMovingOrSizing()
+    if this.SetUserPlaced then this:SetUserPlaced(false) end   -- see F:SavePos
     local s = this:GetEffectiveScale() / UIParent:GetEffectiveScale()
     A.db[posKey] = { left = this:GetLeft() * s, top = this:GetTop() * s, bottom = this:GetBottom() * s }
     B:Place()
@@ -50,6 +51,7 @@ function B:Build()
 end
 
 local function PlaceOne(f, p, x, y)
+  if f.SetUserPlaced then f:SetUserPlaced(false) end   -- see F:SavePos
   f:SetScale(A.db.scale)
   f:ClearAllPoints()
   if not p then

@@ -196,6 +196,26 @@ local function Refine(e, u, now)
   end
 end
 
+-- The buff row: what matters first (by PRIO), then the rest in the game's order.
+-- Only redrawn when the list really changed.
+local BUFF_KINDS = { immune = true, defense = true, offense = true, mobility = true }
+local buffs, sig = {}, {}
+local function SortBuffs(x, y)
+  local px, py = PRIO[x.kind or ""] or 0, PRIO[y.kind or ""] or 0
+  if px ~= py then return px > py end
+  return x.i < y.i
+end
+function A:SetBuffs(e, list)
+  local n = list and table.getn(list) or 0
+  for k = table.getn(sig), 1, -1 do sig[k] = nil end
+  for k = 1, n do sig[k] = list[k].tex end
+  local key = n > 0 and table.concat(sig, ";") or ""
+  if key == (e.buffKey or "") then return end
+  e.buffKey = key
+  e.buffList = n > 0 and list or nil
+  self.dirty = true
+end
+
 function A:ScanAuras(e, now)
   local u = e.unit
   if not u then return end
@@ -206,10 +226,19 @@ function A:ScanAuras(e, now)
     if not tex then break end
     if See(self, e, sid, tex, now) then added = true end
   end
+  for k = table.getn(buffs), 1, -1 do buffs[k] = nil end
   for i = 1, 32 do
     local tex, _, sid = UnitBuff(u, i)
     if not tex then break end
     if See(self, e, sid, tex, now) then added = true end
+    local def = (sid and A.AURAS[sid]) or (not sid and A.AURA_TEX[string.lower(tex)]) or nil
+    table.insert(buffs, { tex = tex, i = i, kind = def and BUFF_KINDS[def.k] and def.k or nil })
+  end
+  if self.db.buffs then
+    table.sort(buffs, SortBuffs)
+    local copy = {}
+    for k = 1, table.getn(buffs) do copy[k] = buffs[k] end
+    self:SetBuffs(e, copy)
   end
   for key, a in pairs(e.auras) do
     if not seen[key] then self:AuraRemoved(e, key, a, now) end
@@ -268,9 +297,10 @@ function A:AuraTick(now)
         self:PickAuras(e, now)
       elseif e.unit then
         self:ScanAuras(e, now)
-      elseif e.big or next(e.auras) then
+      elseif e.big or next(e.auras) or e.buffList then
         -- out of sight: nothing about them is known any more, except the clock of
         -- what we saw land (a timer that passed its end cannot be still running)
+        self:SetBuffs(e, nil)
         for key, a in pairs(e.auras) do
           if not a.stop or now >= a.stop then self:AuraRemoved(e, key, a, now) end
         end

@@ -14,7 +14,7 @@
 -- See CLAUDE.md.
 
 local A = OctoArenaFrames
-A.VERSION = "1.0.1"
+A.VERSION = "1.0.2"
 A.MAX = 5              -- the most enemies (5v5)
 
 A.FORMATS = {
@@ -115,6 +115,7 @@ A.DEFAULTS = {
   cast = true, castH = 16, castIcon = true, castTime = true, castSchool = true, kickMark = true, lockout = true,
   -- auras
   big = true, immuneGlow = true, strip = true, stripMax = 3, dr = true, drSize = 23,
+  buffs = true, buffSize = 20, buffMax = 8,   -- the enemy's buffs in a row above the frame
   -- cooldown row
   cdRow = true, cdSize = 24, cdSpacing = 2, cdPerRow = 10, showReady = true, showTalents = true,
   -- interrupt bar (OctoKicks' bar: every enemy's interrupts in one strip)
@@ -475,6 +476,9 @@ A:On("PLAYER_ENTERING_WORLD", function()
   A:CheckZone()
   -- a loading screen from one match to the next can keep the same kind
   if was == A.zone and A.db.resetOnZone then A:ResetMatch() A:Changed() end
+  -- back where you put them, whatever the client did during the loading screen
+  if A.Frames and A.Frames.anchor then A.Frames:Place() end
+  if A.Bars and A.Bars.bg then A.Bars:Place() end
 end)
 A:On("ZONE_CHANGED_NEW_AREA", function() A:CheckZone() end)
 
@@ -495,6 +499,10 @@ function A:OnFrame(e)
     self.zoneChecks = self.zoneChecks - 1
     self.zoneCheckAt = now + 1.5
     self:CheckZone()
+    if self.zoneChecks == 2 then     -- once, 0.6 s after the loading screen
+      if self.Frames and self.Frames.anchor then self.Frames:Place() end
+      if self.Bars and self.Bars.bg then self.Bars:Place() end
+    end
   end
   if self.Frames then self.Frames:OnFrame(now) end
   if a20 >= 0.05 then

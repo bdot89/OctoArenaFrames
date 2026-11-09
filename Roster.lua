@@ -408,6 +408,22 @@ A.BG_SAMPLES = {
 }
 local TEST_TIME = 60
 
+-- Buffs for the sample enemies: one that matters (coloured edge) and a few ordinary ones.
+local TEST_BUFFS = {
+  { "Spell_Holy_PowerWordShield", "defense" }, { "Spell_Holy_SealOfValor", "mobility" },
+  { "Spell_Holy_DivineSpirit", nil }, { "Spell_Holy_WordFortitude", nil }, { "Spell_Nature_Regeneration", nil },
+  { "Spell_Holy_MagicalSentry", nil }, { "Spell_Shadow_AntiShadow", nil }, { "Spell_Nature_Rejuvenation", nil },
+}
+function A.TestBuffs(i)
+  local out = {}
+  local n = 3 + math.mod(i * 2, 5)
+  for k = 1, n do
+    local b = TEST_BUFFS[math.mod(i + k - 2, table.getn(TEST_BUFFS)) + 1]
+    table.insert(out, { tex = "Interface\\Icons\\" .. b[1], i = k, kind = (k == 1) and b[2] or nil })
+  end
+  return out
+end
+
 -- Sample enemies (your real named ones where set) that play out casts, crowd
 -- control, cooldowns and diminishing returns, so everything can be set up anywhere.
 -- Never announces or plays sounds. The quick test ends on its own after a minute;
@@ -425,6 +441,7 @@ function A:SetTest(on, full)
         e.name, e.class, e.race = SAMPLES[i].name, SAMPLES[i].class, SAMPLES[i].race
       end
       e.fake = true
+      self:SetBuffs(e, A.TestBuffs(i))
       e.hp, e.hpMax, e.mana, e.manaMax, e.power = 60 + i * 7, 100, 80 - i * 9, 100, 0
       if e.class == "ROGUE" then e.power = 3 end
       if e.class == "WARRIOR" then e.power = 1 end

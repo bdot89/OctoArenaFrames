@@ -429,6 +429,37 @@ for _, g in ipairs({ MAGE, ROGUE, LOCK }) do
   Mock.units[g].buffs = {}
 end
 Mock.Tick(0.3)   -- first look after an aura table exists: nothing there, start of watching
+
+-- buffs above the frame (asked for 9 Nov): every buff, what matters first
+Mock.units[MAGE].buffs = { { id = 10938, tex = "Interface\\Icons\\Spell_Holy_WordFortitude" },
+                           { id = 17, tex = "Interface\\Icons\\Spell_Holy_PowerWordShield" } }
+Mock.Tick(0.3)
+ok(mage.buffList and table.getn(mage.buffList) == 2, "both buffs listed")
+ok(mage.buffList[1].kind == "defense" and mage.buffList[2].kind == nil, "the shield first, marked; Fortitude after")
+Mock.Tick(0.1)
+local bi = F.frames[1].buffIcons
+ok(bi and bi[1] and bi[1].shown and bi[2].shown, "two buff icons on the frame")
+ok(bi[1].tex.texture == "Interface\\Icons\\Spell_Holy_PowerWordShield", "shield icon first")
+ok(bi[1].point[1] == "BOTTOMLEFT" and bi[1].point[3] == "TOPLEFT" and bi[1].point[5] > 0, "above the frame")
+local keyBefore = mage.buffKey
+A.dirty = false
+Mock.Tick(0.3)
+ok(mage.buffKey == keyBefore and not A.dirty, "the same buffs: no redraw")
+local m0 = F.Metrics(A.db)
+ok(m0.top > 0 and m0.pitch == m0.top + m0.total + A.db.spacing, "each enemy's share has room for the row")
+ok(m0.buffMax * (A.db.buffSize + 2) - 2 <= m0.W, "the row fits the frame width")
+A.db.buffs = false
+A:Changed()
+Mock.Tick(0.3)
+ok(not bi[1].shown and F.Metrics(A.db).top == 0, "switched off: no row, no room taken")
+A.db.buffs = true
+A:Changed()
+Mock.units[MAGE].buffs = {}
+Mock.Tick(0.3)
+ok(mage.buffList == nil, "buffs gone: row empty")
+Mock.Tick(0.1)
+ok(not bi[1].shown, "and the icons hide")
+
 Debuff(MAGE, 12826)
 Mock.Tick(0.25)
 ok(mage.big and mage.big.def.n == "Polymorph", "Polymorph on the big icon")
@@ -1025,6 +1056,23 @@ A:RegisterLog()
 Mock.zone, Mock.instance = "Duskwood", nil
 Mock.Fire("PLAYER_ENTERING_WORLD")
 
+-- ---------------------------------------------------------------- position (9 Nov)
+-- the client's layout-cache put the frames back after each loading screen
+local placed = {}
+F.anchor.SetUserPlaced = function(self, v) placed.anchor = v end
+A.Bars.bg.SetUserPlaced = function(self, v) placed.bg = v end
+A.Frames:SavePos()
+ok(placed.anchor == false, "after a drag the client's own copy of the position is switched off")
+local saved = A.db.pos
+ok(saved and saved.left and saved.top, "position saved")
+F.anchor:ClearAllPoints()
+F.anchor:SetPoint("CENTER", UIParent, "CENTER", 0, 0)     -- as the client would
+Mock.Fire("PLAYER_ENTERING_WORLD")
+ok(F.anchor.point[1] == "TOPLEFT" and F.anchor.point[3] == "BOTTOMLEFT", "after a loading screen: back where you put them")
+ok(A.db.pos == saved, "the saved position is never cleared by a loading screen")
+ok(placed.bg == false, "the BG rows too")
+F.anchor.SetUserPlaced, A.Bars.bg.SetUserPlaced = nil, nil
+
 -- ---------------------------------------------------------------- test mode
 Mock.chat = {}
 Mock.sounds = {}
@@ -1034,6 +1082,7 @@ ok(A.test and A:Max() == 3, "test: three samples")
 Mock.Tick(0.1)
 ok(F.anchor:IsShown(), "frames show in test mode")
 ok(F.handle.shown, "with the handle")
+ok(A.testEnemies[1].buffList and F.frames[1].buffIcons[1].shown, "test samples show buffs above the frame")
 Mock.Tick(30)
 local any = false
 for i = 1, 3 do if next(A.testEnemies[i].cds) then any = true end end

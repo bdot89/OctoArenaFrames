@@ -45,7 +45,16 @@ function F.Metrics(db)
     if m.cdMax > db.cdPerRow then m.cdMax = db.cdPerRow end
   end
   m.total = m.y
-  m.pitch = m.total + db.spacing
+  -- the buff row sits above the frame, inside each enemy's share of the height
+  m.top = 0
+  m.buffMax = 0
+  if db.buffs then
+    m.buffSize = db.buffSize
+    m.top = db.buffSize + m.gap
+    m.buffMax = math.floor((m.W + 2) / (db.buffSize + 2))
+    if m.buffMax > db.buffMax then m.buffMax = db.buffMax end
+  end
+  m.pitch = m.top + m.total + db.spacing
   m.outer = db.drSize
   return m
 end
@@ -228,8 +237,13 @@ function F:Build()
   self:Place()
 end
 
+-- The position lives in our settings only. StartMoving marks a frame "user placed",
+-- and the client then keeps its own copy in layout-cache.txt (written at logout) and
+-- puts the frame back there after loading screens: the frames jumped back after every
+-- arena. So the client's copy is switched off after each drag.
 function F:SavePos()
   local a = self.anchor
+  if a.SetUserPlaced then a:SetUserPlaced(false) end
   local s = a:GetEffectiveScale() / UIParent:GetEffectiveScale()
   A.db.pos = { left = a:GetLeft() * s, top = a:GetTop() * s, bottom = a:GetBottom() * s }
   self:Place()
@@ -238,6 +252,7 @@ end
 function F:Place()
   local a, db = self.anchor, A.db
   if not a or not db then return end
+  if a.SetUserPlaced then a:SetUserPlaced(false) end   -- drops an old layout-cache entry too
   a:SetScale(db.scale)
   a:ClearAllPoints()
   local p = db.pos
@@ -460,7 +475,7 @@ function F:Layout(now)
       if db.grow == "UP" then
         f:SetPoint("BOTTOMLEFT", a, "BOTTOMLEFT", 0, off + (m.total - m.H))
       else
-        f:SetPoint("TOPLEFT", a, "TOPLEFT", 0, -off)
+        f:SetPoint("TOPLEFT", a, "TOPLEFT", 0, -(off + m.top))
       end
       f:SetWidth(m.W)
       f:SetHeight(m.H)
@@ -566,7 +581,45 @@ function F:Fill(f, e, db, m, px, now)
     I.Place(b, f, x, -size / 2, size, px)
   end
   for k = sn + 1, table.getn(f.stripIcons) do f.stripIcons[k]:Hide() end
+  self:PaintBuffs(f, e, db, m, px)
   self:PaintNumbers(f, e, db, now)
+end
+
+-- The enemy's buffs in a row above the frame: the ones that matter (immunities,
+-- defensives, offensives, mobility) first with a coloured edge, then the rest.
+-- 1.12 does not tell other players' buff times, so these have no timer.
+function F:PaintBuffs(f, e, db, m, px)
+  f.buffIcons = f.buffIcons or {}
+  local list = db.buffs and e.name and e.buffList or nil
+  local n = list and table.getn(list) or 0
+  if n > m.buffMax then n = m.buffMax end
+  local size = m.buffSize or db.buffSize
+  for k = 1, n do
+    local b = f.buffIcons[k]
+    if not b then
+      b = CreateFrame("Frame", nil, f)
+      b.edge = b:CreateTexture(nil, "BORDER")
+      b.edge:SetTexture(WHITE)
+      b.edge:SetAllPoints(b)
+      b.tex = b:CreateTexture(nil, "ARTWORK")
+      b.tex:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+      f.buffIcons[k] = b
+    end
+    local x = MX(db, m, (k - 1) * (size + 2), size)
+    b:ClearAllPoints()
+    b:SetPoint("BOTTOMLEFT", f, "TOPLEFT", I.Snap(x, px), I.Snap(m.gap, px))
+    b:SetWidth(I.Snap(size, px))
+    b:SetHeight(I.Snap(size, px))
+    b.tex:ClearAllPoints()
+    b.tex:SetPoint("TOPLEFT", b, "TOPLEFT", px, -px)
+    b.tex:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -px, px)
+    local a = list[k]
+    b.tex:SetTexture(a.tex)
+    local col = a.kind and A.KIND_COLOR[a.kind]
+    if col then b.edge:SetVertexColor(col[1], col[2], col[3], 1) else b.edge:SetVertexColor(0, 0, 0, 0.9) end
+    b:Show()
+  end
+  for k = n + 1, table.getn(f.buffIcons) do f.buffIcons[k]:Hide() end
 end
 
 -- ---------------------------------------------------------------- painting

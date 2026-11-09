@@ -89,6 +89,16 @@ sight with can attack / enemy), "complete". After the first real match READ THIS
   `/oaf test full`): no timer, all A.MAX slots when the format is auto, `A:TestExtra` adds kicks (lockout),
   trinkets, racials. Both stop on any zone change.
 
+## Fixed from in-game reports (9 Nov 2026)
+- "Unknown" names: UnitName / cast events say "Unknown" (UNKNOWNOBJECT) for players not loaded yet. `A.RealName`
+  refuses it wherever a name comes in (1.0.1).
+- Position reset after every arena: StartMoving marks the anchor "user placed" and the client keeps its own copy in
+  layout-cache.txt (written at logout), which it put back after loading screens. Place / SavePos call
+  SetUserPlaced(false), and PLAYER_ENTERING_WORLD + 0.6 s later re-Place (1.0.2).
+- Buffs above the frame (1.0.2): `e.buffList` from ScanAuras (all UnitBuff, kinds immune / defense / offense /
+  mobility first with a coloured edge), `F:PaintBuffs`; Metrics `m.top` = row height, inside `m.pitch`. No timers
+  (1.12 sends none for other players). Cleared when out of sight.
+
 ## Publishing (9 Nov 2026)
 Public repo github.com/bdot89/OctoArenaFrames (main). The OctoWoW launcher updates addons whose folder is a git
 clone: isomorphic-git reads the first remote, fetches, and compares HEAD with origin/<branch>; uncommitted

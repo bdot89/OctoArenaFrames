@@ -696,6 +696,12 @@ function O:BuildStrips(p)
   g, s = Num("intPerRow") L:Add(Slider(p, "Icons per row", 1, 16, 1, g, s))
   g, s = Num("intNames") L:Add(Switch(p, "Names under the icons", g, s), 8)
 
+  L:Add(Heading(p, "Buffs above the frame"), 6)
+  g, s = Num("buffs") L:Add(Switch(p, "Show their buffs", g, s,
+    "A row of the enemy's buffs above each frame while they are in sight. Shields, immunities, offensive and escape buffs come first with a coloured edge. 1.12 does not send other players' buff times, so they have no timer."), 4)
+  g, s = Num("buffSize") L:Add(Slider(p, "Icon size", 12, 32, 1, g, s, pxs))
+  g, s = Num("buffMax") L:Add(Slider(p, "Most shown", 1, 16, 1, g, s), 8)
+
   R:Add(Heading(p, "BG / World rows"), 6)
   g, s = Num("bgIconSize") R:Add(Slider(p, "Icon size", 16, 64, 1, g, s, pxs))
   g, s = Num("bgRows") R:Add(Slider(p, "Most enemies shown", 1, 15, 1, g, s))
