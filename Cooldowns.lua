@@ -150,6 +150,7 @@ end
 function A:Credit(s, casterName, guid, id, opts)
   if not s then return end
   opts = opts or {}
+  casterName = A.RealName(casterName)
   if self:IsBG() then
     if not A.SpellOn(s) or opts.aura or not casterName or not opts.hostile then return end
     self:BGUse(casterName, guid, s, opts.pet, id)

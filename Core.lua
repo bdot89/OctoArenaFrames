@@ -14,7 +14,7 @@
 -- See CLAUDE.md.
 
 local A = OctoArenaFrames
-A.VERSION = "1.0.0"
+A.VERSION = "1.0.1"
 A.MAX = 5              -- the most enemies (5v5)
 
 A.FORMATS = {
@@ -165,6 +165,14 @@ function A.Key(name)
   local _, _, base = string.find(low, "^(.-)%-%a+$")
   if base and base ~= "" then return base end
   return low
+end
+
+-- A name the game really knows, or nil. A player the client has not loaded yet is
+-- called "Unknown" (UNKNOWNOBJECT) by UnitName and the cast events: that is not a name.
+function A.RealName(name)
+  if not name or name == "" then return nil end
+  if name == (UNKNOWNOBJECT or "Unknown") or name == "Unknown" or name == UNKNOWNBEING then return nil end
+  return name
 end
 
 local function Proper(s)

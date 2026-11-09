@@ -284,7 +284,7 @@ local function Apply(f, db, m, px)
   ic.tex:SetPoint("BOTTOMRIGHT", ic, "BOTTOMRIGHT", -px, px)
   I.FitSweep(ic.cd, m.icon, ic)
   ic.time:SetFont(A.FontFile(db.numFont), math.floor(m.icon * 0.46), "OUTLINE")
-  ic.num:SetFont(A.UI_FONT, 10, "OUTLINE")
+  ic.num:SetFont(A.UI_FONT, math.max(12, math.floor(m.icon * 0.32)), "OUTLINE")
   -- bars
   x = MX(db, m, m.icon + m.gap, m.barW)
   Rect(f.bars, f, x, 0, m.barW, m.H)
@@ -480,11 +480,18 @@ function F:Fill(f, e, db, m, px, now)
   f.lastHp, f.lastMp, f.lastState = nil, nil, nil
   -- name
   local c = e.class and A.CLASS_COLOR[e.class]
-  local name = e.name or ("Enemy " .. f.i)
+  -- the number goes in front of the name, in gold, so the team can call "kill 2"
+  local name = e.name or (db.showNumber and "not seen yet" or ("Enemy " .. f.i))
   if e.spec and db.showSpec and e.name then name = name .. " |cffbbbbbb" .. e.spec .. "|r" end
-  if db.showName then f.name:SetText(name) else f.name:SetText("") end
+  if db.showNumber then name = "|cffffd100" .. f.i .. "|r  " .. name end
+  if db.showName then
+    f.name:SetText(name)
+    f.ic.num:SetText("")
+  else
+    f.name:SetText("")
+    f.ic.num:SetText(db.showNumber and tostring(f.i) or "")
+  end
   if c then f.name:SetTextColor(1, 1, 1) else f.name:SetTextColor(0.75, 0.75, 0.75) end
-  f.ic.num:SetText(db.showNumber and tostring(f.i) or "")
   -- icon: what is on them, else their class
   self:PaintBig(f, e, db, now)
   -- health / power colours

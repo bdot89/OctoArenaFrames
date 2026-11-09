@@ -589,7 +589,7 @@ function O:BuildFrames(p)
   g, s = Num("showName") R:Add(Switch(p, "Name", g, s), 1)
   g, s = Num("showSpec") R:Add(Switch(p, "Talent tree, once a talent spell is seen", g, s,
     "1.12 cannot read an enemy's talents. When they use a talent spell, its tree shows next to their name."), 1)
-  g, s = Num("showNumber") R:Add(Switch(p, "Enemy number on the icon", g, s, "The number your keys and macros use."), 1)
+  g, s = Num("showNumber") R:Add(Switch(p, "Enemy number before the name", g, s, "A gold 1, 2, 3 in front of each name, for calling targets on voice (\"kill 2\"). The same number your keys, macros and /oaf target use. With names off it shows on the icon."), 1)
   R:Add(Cycle(p, "Health text", { { "percent", "Percent" }, { "none", "None" } },
     function() return A.db.hpText end, function(v) A.db.hpText = v end, 90), 2)
   g, s = Num("showEnemyTarget") R:Add(Switch(p, "Who they target (> YOU in red)", g, s), 1)

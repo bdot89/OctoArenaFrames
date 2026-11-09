@@ -237,6 +237,7 @@ end
 
 -- The first free slot takes this enemy; a fixed format's slots lock when full.
 function A:AutoFill(name, guid, class)
+  name = A.RealName(name)
   if not name or not self:MayFill() then return nil end
   local cap = A.MAX
   local f = self:Format()
@@ -283,7 +284,7 @@ function A:Consider(guid, src)
   if self.rejected[guid] or guid == self.myGuid then return nil end
   if self:IsBG() or not A.IsGuid(guid) or not UnitExists(guid) then return nil end
   local player = UnitIsPlayer(guid)
-  local name = player and UnitName(guid)
+  local name = player and A.RealName(UnitName(guid))   -- "Unknown" until loaded: asked again later
   -- a named player counts even when friendly: a duel with a teammate is practice
   e = name and self:FindSlot(name, guid)
   if e then
@@ -327,7 +328,7 @@ function A:ConsiderToken(unit)
     self:Consider(g, unit)
     return
   end
-  local name = UnitName(unit)
+  local name = A.RealName(UnitName(unit))
   if not name or name == UnitName("player") then return end
   local key = A.Key(name)
   local e = self:FindSlot(name)

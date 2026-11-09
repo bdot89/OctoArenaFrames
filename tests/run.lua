@@ -190,12 +190,20 @@ ok(A:Max() == 3, "auto: as many frames as your team (3)")
 Mock.Tick(0.1)
 ok(F.anchor:IsShown(), "frames show in an arena")
 ok(F.frames[3]:IsShown() and not F.frames[4]:IsShown(), "three frames")
-ok(F.frames[1].name.text == "Enemy 1", "empty slot says so")
+ok(F.frames[1].name.text == "|cffffd1001|r  not seen yet", "empty slot: its number, not seen yet")
 
 -- found by casting, nameplate and target; slots stay put
 local function Cast(guid, target, kind, id, ms) Mock.Fire("UNIT_CASTEVENT", guid, target, kind, id, ms) end
+-- a player the client has not loaded yet is "Unknown": never taken as a name (seen in game, 9 Nov)
+Mock.units[MAGE].name = "Unknown"
 Cast(MAGE, nil, "CAST", 1953)
-ok(A.enemies[1].name == "Frostmage" and A.enemies[1].guid == MAGE, "first cast takes slot 1")
+Mock.Tick(1.1)
+ok(not A.enemies[1].name and not A.byName["unknown"], "\"Unknown\" is not a name")
+ok(A.RealName("Unknown") == nil and A.RealName("") == nil and A.RealName("Bob") == "Bob", "RealName")
+Mock.units[MAGE].name = "Frostmage"
+Mock.Tick(0.3)
+Cast(MAGE, nil, "CAST", 1953)
+ok(A.enemies[1].name == "Frostmage" and A.enemies[1].guid == MAGE, "first cast takes slot 1 once the name is known")
 ok(A.enemies[1].class == "MAGE" and A.enemies[1].race == "Gnome", "class and race read")
 Cast(FRIEND, nil, "CAST", 1953)
 ok(not A.enemies[2].name, "a teammate is not an enemy")
@@ -209,7 +217,7 @@ Mock.target = nil
 ok(A:RosterFull(), "roster complete")
 Mock.Tick(1)
 ok(A.enemies[1].guid == MAGE and A.enemies[2].guid == ROGUE and A.enemies[3].guid == LOCK, "slots never swap")
-ok(F.frames[1].name.text == "Frostmage", "frame shows the name")
+ok(F.frames[1].name.text == "|cffffd1001|r  Frostmage", "frame shows the number, then the name")
 
 -- health, power, states
 local mage, rogue, lock = A.enemies[1], A.enemies[2], A.enemies[3]
@@ -658,7 +666,7 @@ ok(A.enemies[1].name == "Duskfang-NZ" and A.enemies[2].name == "Arrowmoss" and A
   "the server's list named the whole team at once, in its order, realm suffix kept")
 ok(not A.byName["mate"] and not A.byName["pal"] and not A.byName["tester"], "your own team left out")
 ok(A:Max() == 3, "three frames, from the server's count")
-ok(F.frames[1].name.text == "Duskfang-NZ", "name on the frame before anyone has been seen")
+ok(F.frames[1].name.text == "|cffffd1001|r  Duskfang-NZ", "name on the frame before anyone has been seen")
 
 Leave()
 asked = 0
@@ -741,7 +749,7 @@ ok(A:RosterFull(), "the whole team found")
 Mock.Tick(0.1)
 ok(not A.hunting, "and the hunt stops")
 Mock.Tick(0.1)
-ok(F.frames[1].hp.value == 80 and F.frames[1].baseAlpha == 1, "health read before the gates open")
+ok(F.frames[1].hp.value == 80 and F.frames[1].baseAlpha ~= 0.55, "health read before the gates open (seen, not greyed as unseen)")
 ok(A.foundAt ~= nil, "time to find them noted")
 Mock.target = nil
 Leave()
