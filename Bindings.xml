@@ -1,0 +1,17 @@
+<Bindings>
+	<Binding name="OCTOARENA_TARGET1" header="OCTOARENAFRAMES">OctoArenaFrames:TargetEnemy(1)</Binding>
+	<Binding name="OCTOARENA_TARGET2">OctoArenaFrames:TargetEnemy(2)</Binding>
+	<Binding name="OCTOARENA_TARGET3">OctoArenaFrames:TargetEnemy(3)</Binding>
+	<Binding name="OCTOARENA_TARGET4">OctoArenaFrames:TargetEnemy(4)</Binding>
+	<Binding name="OCTOARENA_TARGET5">OctoArenaFrames:TargetEnemy(5)</Binding>
+	<Binding name="OCTOARENA_FOCUS1">OctoArenaFrames:FocusEnemy(1)</Binding>
+	<Binding name="OCTOARENA_FOCUS2">OctoArenaFrames:FocusEnemy(2)</Binding>
+	<Binding name="OCTOARENA_FOCUS3">OctoArenaFrames:FocusEnemy(3)</Binding>
+	<Binding name="OCTOARENA_FOCUS4">OctoArenaFrames:FocusEnemy(4)</Binding>
+	<Binding name="OCTOARENA_FOCUS5">OctoArenaFrames:FocusEnemy(5)</Binding>
+	<Binding name="OCTOARENA_KICK1">OctoArenaFrames:KickEnemy(1)</Binding>
+	<Binding name="OCTOARENA_KICK2">OctoArenaFrames:KickEnemy(2)</Binding>
+	<Binding name="OCTOARENA_KICK3">OctoArenaFrames:KickEnemy(3)</Binding>
+	<Binding name="OCTOARENA_KICK4">OctoArenaFrames:KickEnemy(4)</Binding>
+	<Binding name="OCTOARENA_KICK5">OctoArenaFrames:KickEnemy(5)</Binding>
+</Bindings>

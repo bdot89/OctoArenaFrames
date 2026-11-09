@@ -1,0 +1,21 @@
+## Interface: 11200
+## Title: OctoArenaFrames
+## Notes: Arena frames for this client: fast cast bars, interrupts, cooldowns from the game's own data, trinkets, racials, crowd control, diminishing returns. OctoKicks built in. /oaf
+## Author: bdot89
+## Version: 1.0.0
+## OptionalDeps: OctoKicks, pfUI
+## SavedVariables: OctoArenaGlobal
+## SavedVariablesPerCharacter: OctoArenaDB
+Data\SpellData.lua
+Core.lua
+Roster.lua
+Arena.lua
+Cooldowns.lua
+Casts.lua
+Auras.lua
+Actions.lua
+Icons.lua
+Frames.lua
+Bars.lua
+Options.lua
+Import.lua
