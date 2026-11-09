@@ -28,11 +28,10 @@ control, diminishing returns. The OctoKicks interrupt tracker is built in.
 | --- | --- |
 | `/oaf` | Options window |
 | `/oaf test` | Quick test: sample enemies for 60 seconds, to see and move the frames |
-| `/oaf target 1` etc. | The gold number in front of each name is the one to call on voice ("kill 2") |
 | `/oaf test full` | Full test until you stop it: every frame, casts, kicks with lockouts, CC + DR, cooldowns, trinkets, racials, interrupt bar (also a button in the options) |
 | `/oaf lock` | Lock / unlock the frames |
 | `/oaf 2v2`, `3v3`, `5v5`, `bg` | Pick a layout (`/oaf auto` to go by the zone) |
-| `/oaf target 1`, `focus 1`, `kick 1` | Act on enemy 1 (also in Key Bindings) |
+| `/oaf target 1`, `focus 1`, `kick 1` | Act on enemy 1 (also in Key Bindings). The gold number in front of each name is that number: call it on voice ("kill 2") |
 | `/oaf log` | What was learned about the enemy team in recent matches |
 | `/oaf probe`, `/oaf errors` | Diagnostics for bug reports |
 | `/oaf reset` | Reset settings |
