@@ -14,7 +14,7 @@
 -- See CLAUDE.md.
 
 local A = OctoArenaFrames
-A.VERSION = "1.0.4"
+A.VERSION = "1.0.5"
 A.MAX = 5              -- the most enemies (5v5)
 
 A.FORMATS = {
@@ -99,7 +99,7 @@ A.DEFAULTS = {
   -- who
   format = "auto",               -- auto / 2v2 / 3v3 / 5v5 / bg
   arenaDetect = true,            -- in an arena: 2v2 / 3v3 / 5v5 found out per match, whatever the format
-  mouseCast = "kicks",           -- spells pressed over an enemy frame go to that enemy: kicks / all / off
+  mouseCast = "harmful",         -- spells pressed over an enemy frame go to that enemy: harmful / kicks / all / off
   bgAuto = true,                 -- battlegrounds switch to BG / World by themselves
   mode = "auto",                 -- auto: arenas fill by themselves / strict: only the named players
   worldFill = false,             -- auto mode outside arenas too
@@ -573,6 +573,12 @@ function A:Init()
   local fresh = OctoArenaDB.format == nil
   Merge(OctoArenaDB, A.DEFAULTS)
   self.db = OctoArenaDB
+  -- 1.0.5: mouseover casting covers every offensive spell (user, 10 Nov); the old
+  -- default "kicks" was saved into everyone's settings, so it is moved on once
+  if not OctoArenaDB.mouseCastV then
+    if OctoArenaDB.mouseCast == "kicks" then OctoArenaDB.mouseCast = "harmful" end
+    OctoArenaDB.mouseCastV = 2
+  end
   self.global = OctoArenaGlobal
   if type(self.global.profiles) ~= "table" then self.global.profiles = {} end
   if type(self.global.learned) ~= "table" then self.global.learned = {} end
@@ -687,6 +693,11 @@ SlashCmdList["OCTOARENAFRAMES"] = function(msg)
       A:Print("last arena: " .. tostring(m.zone) .. ", " .. tostring(m.when))
       for i = 1, table.getn(m.log) do DEFAULT_CHAT_FRAME:AddMessage(m.log[i]) end
     end
+  elseif cmd == "mouse" then
+    A:Print("mouseover casting: " .. tostring(A.db.mouseCast) .. (A.mouseHooked and "" or " (not hooked yet)")
+      .. ", SuperWoW " .. (A.UseSW() and "yes" or "no") .. ", MouseIsOver " .. (MouseIsOver and "yes" or "no"))
+    if table.getn(A.mouseLog) == 0 then A:Print("nothing cast over an enemy frame yet.") end
+    for i = 1, table.getn(A.mouseLog) do DEFAULT_CHAT_FRAME:AddMessage(A.mouseLog[i]) end
   elseif cmd == "errors" then
     if table.getn(A.errors) == 0 then A:Print("no errors.") end
     for i = 1, table.getn(A.errors) do A:Print(A.errors[i]) end
@@ -708,7 +719,7 @@ SlashCmdList["OCTOARENAFRAMES"] = function(msg)
       local s = A.db.slots[i]
       if s.name then A:Print("Enemy " .. i .. ": " .. s.name .. " " .. (s.class or "")) end
     end
-    A:Print("/oaf - options, test, test full, lock, reset, 2v2, 3v3, 5v5, bg, strict, auto, set 1-5 (from target), clear, probe, log, errors")
+    A:Print("/oaf - options, test, test full, mouse, lock, reset, 2v2, 3v3, 5v5, bg, strict, auto, set 1-5 (from target), clear, probe, log, errors")
     A:Print("macros: /oaf target 1, /oaf focus 2, /oaf kick 3, /oaf cast 2 Polymorph")
   end
 end

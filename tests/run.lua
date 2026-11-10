@@ -242,9 +242,50 @@ UseAction(5)
 ok(usedSlot == nil and Mock.casted[1] and Mock.casted[1][1] == "Kick" and Mock.casted[1][2] == MAGE,
   "the Kick button casts Kick at the enemy under the mouse")
 ok(Mock.target == targetBefore, "your target does not change")
+-- every offensive spell by default (10 Nov: "it should work with any offensive spell"),
+-- heals and self buffs as usual; ClassicAPI says which is which
+ok(A.db.mouseCast == "harmful", "default: offensive spells")
+function IsHarmfulSpell(n) return n == "Frostbolt" or n == "Fireball" end
+function IsHelpfulSpell(n) return n == "Renew" end
+Mock.casted, usedSlot = {}, nil
 Mock.tipName = "Frostbolt"
 UseAction(6)
-ok(usedSlot == 6, "other spells go on as usual")
+ok(usedSlot == nil and Mock.casted[1] and Mock.casted[1][1] == "Frostbolt" and Mock.casted[1][2] == MAGE,
+  "Frostbolt goes to the enemy under the mouse")
+Mock.casted = {}
+CastSpellByName("Fireball(Rank 12)")
+ok(Mock.casted[1] and Mock.casted[1][1] == "Fireball" and Mock.casted[1][2] == MAGE, "a /cast Fireball macro too")
+Mock.casted, usedSlot = {}, nil
+Mock.tipName = "Renew"
+UseAction(7)
+ok(usedSlot == 7 and not Mock.casted[1], "a heal casts as usual")
+Mock.tipName = "Evasion"
+usedSlot = nil
+UseAction(8)
+ok(usedSlot == 8, "a self buff casts as usual")
+-- without an answer from ClassicAPI: the spell book tooltip (range line = aimed at someone)
+local realGSN, realTipL1, realTipL2 = GetSpellName, OctoArenaScanTipTextLeft1, OctoArenaScanTipTextLeft2
+local BOOK = { "Shadow Bolt", "Demon Skin", "Health Funnel" }
+local TIPS = { ["Shadow Bolt"] = { "Shadow Bolt", "30 yd range" }, ["Demon Skin"] = { "Demon Skin", "Increases your armor." },
+               ["Health Funnel"] = { "Health Funnel", "20 yd range", "Gives health to the caster's pet." } }
+function GetSpellName(i) return BOOK[i] end
+local tipFor
+OctoArenaScanTip.SetSpell = function(self, slot) tipFor = BOOK[slot] end
+local realTipText = OctoArenaScanTipTextLeft1
+OctoArenaScanTipTextLeft1 = { GetText = function() if tipFor then return TIPS[tipFor][1] end return Mock.tipName end }
+OctoArenaScanTipTextLeft2 = { GetText = function() return tipFor and TIPS[tipFor][2] end }
+OctoArenaScanTipTextLeft3 = { GetText = function() return tipFor and TIPS[tipFor][3] end }
+ok(A:SpellKind("Shadow Bolt") == "harm", "tooltip: a range line = offensive")
+ok(A:SpellKind("Demon Skin") == "self", "tooltip: no range = self")
+GetSpellName, OctoArenaScanTipTextLeft1, OctoArenaScanTipTextLeft2, OctoArenaScanTipTextLeft3 = realGSN, realTipText, realTipL2, nil
+ok(string.find(A.mouseLog[table.getn(A.mouseLog)], "left alone", 1, true), "/oaf mouse says why it was left")
+A.db.mouseCast = "kicks"
+Mock.tipName = "Frostbolt"
+usedSlot = nil
+UseAction(6)
+ok(usedSlot == 6, "interrupts only: other spells go on as usual")
+A.db.mouseCast = "harmful"
+IsHarmfulSpell, IsHelpfulSpell = nil, nil
 usedSlot = nil
 UseAction(9)
 ok(usedSlot == 9, "a macro button runs its macro (its /cast comes back through here)")
@@ -262,18 +303,28 @@ A.db.mouseCast = "off"
 Mock.tipName = "Kick"
 UseAction(5)
 ok(usedSlot == 5, "off: as usual")
-A.db.mouseCast = "kicks"
+A.db.mouseCast = "harmful"
 this = f1
 f1:GetScript("OnLeave")()
 Mock.over = nil
 usedSlot = nil
 UseAction(5)
 ok(usedSlot == 5 and A.hover == nil and mo.unit == nil, "mouse gone: as usual, mouseover cleared")
-Mock.over = nil
-A.hover = 1     -- the mouse left without OnLeave (frame moved away under it)
+A.hover = 1     -- OnEnter said so, but the mouse is not on the frame now
 usedSlot = nil
 UseAction(5)
-ok(usedSlot == 5 and A.hover == nil, "only while the mouse is really on the frame")
+ok(usedSlot == 5, "only while the mouse is really on the frame")
+A.hover = nil
+-- the block counts, not just the top row: cast bar and cooldown row are below the frame
+local seenOffsets
+local realOver = MouseIsOver
+function MouseIsOver(f, up, down) seenOffsets = { up, down } return f == f1 end
+Mock.casted, usedSlot = {}, nil
+UseAction(5)
+ok(Mock.casted[1] and Mock.casted[1][2] == MAGE, "asked at the moment of the cast, no OnEnter needed")
+ok(seenOffsets and seenOffsets[2] < 0, "the area reaches down over the cast bar and cooldowns")
+MouseIsOver = realOver
+SlashCmdList.OCTOARENAFRAMES("mouse")
 ok(BINDING_NAME_OCTOARENA_KICKMOUSE ~= nil, "key binding for the enemy under the mouse")
 
 -- health, power, states

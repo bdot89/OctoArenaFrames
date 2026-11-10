@@ -594,10 +594,12 @@ function O:BuildFrames(p)
     end), 4)
   g, s = Num("mirror") L:Add(Switch(p, "Mirror (icon on the right)", g, s,
     "For frames on the left of the screen: the class icon goes right, and diminishing returns grow to the right."), 8)
-  L:Add(Cycle(p, "Mouseover casting", { { "kicks", "Interrupts" }, { "all", "Every spell" }, { "off", "Off" } },
-    function() return A.db.mouseCast end, function(v) A.db.mouseCast = v end, 110,
-    "With the mouse over an enemy's frame, pressing your interrupt (button, key or /cast macro) casts it at that enemy. "
-    .. "Your target does not change. Every spell: all your spells go there while the mouse is on a frame. "
+  L:Add(Cycle(p, "Mouseover casting", { { "harmful", "Offensive spells" }, { "kicks", "Interrupts only" },
+      { "all", "Every spell" }, { "off", "Off" } },
+    function() return A.db.mouseCast end, function(v) A.db.mouseCast = v end, 120,
+    "With the mouse anywhere on an enemy's frame (buffs, bars, cast bar, cooldowns), your offensive spells and "
+    .. "interrupts go to that enemy: action buttons, their keys, /cast macros and the spell book. Your target does "
+    .. "not change. Heals and self buffs cast as usual. /oaf mouse shows what it did with your last presses. "
     .. "Key binding: Interrupt the enemy under the mouse."), 8)
   L:Add(Button(p, "Reset layout", 120, function() A:ResetLayout() end,
     "Frames, Cooldowns, Strips, Spells and Alerts back to default. Keeps the enemies and the format."))

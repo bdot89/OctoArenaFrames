@@ -113,6 +113,16 @@ sight with can attack / enemy), "complete". After the first real match READ THIS
   target swap and back). Only while MouseIsOver the frame. Binding OCTOARENA_KICKMOUSE, /oaf kick mouse.
   Unverified: SetMouseoverUnit's no-argument clear, UseAction / CastSpell wrapping alongside pfUI's bars.
 
+## 1.0.5 (10 Nov 2026, NOT seen in game). User: "mouseover didn't work it should work with any offensive spell"
+- Likely causes: default was interrupts only, and the frame's own box is only the top row (cast bar, cooldown
+  row and buff row lie outside it), so OnEnter / MouseIsOver(f) missed the mouse there.
+- Now `A:Hovered()` asks MouseIsOver(f, m.top, -(m.total - m.H)) for every frame at the moment of the cast
+  (no reliance on OnEnter). `db.mouseCast` default "harmful" (moved once from the saved "kicks",
+  db.mouseCastV = 2): interrupts always, else `A:SpellKind(name)` == "harm": ClassicAPI IsHelpfulSpell /
+  IsHarmfulSpell (name, then book slot; only a yes counts - their no-answer is unverified), else the spell
+  book tooltip (help words -> help, a "yd range" / "Melee Range" line -> harm, else self).
+- `/oaf mouse`: mode, hooked, SuperWoW, and the last 10 decisions (A.mouseLog) - ask for it with any report.
+
 ## Publishing (9 Nov 2026)
 Public repo github.com/bdot89/OctoArenaFrames (main). The OctoWoW launcher updates addons whose folder is a git
 clone: isomorphic-git reads the first remote, fetches, and compares HEAD with origin/<branch>; uncommitted
