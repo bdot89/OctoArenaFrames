@@ -2,7 +2,7 @@
 ## Title: OctoArenaFrames
 ## Notes: Arena frames for this client: fast cast bars, interrupts, cooldowns from the game's own data, trinkets, racials, crowd control, diminishing returns. OctoKicks built in. /oaf
 ## Author: bdot89
-## Version: 1.0.2
+## Version: 1.0.3
 ## OptionalDeps: OctoKicks, pfUI
 ## SavedVariables: OctoArenaGlobal
 ## SavedVariablesPerCharacter: OctoArenaDB

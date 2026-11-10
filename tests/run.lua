@@ -219,6 +219,63 @@ Mock.Tick(1)
 ok(A.enemies[1].guid == MAGE and A.enemies[2].guid == ROGUE and A.enemies[3].guid == LOCK, "slots never swap")
 ok(F.frames[1].name.text == "|cffffd1001|r  Frostmage", "frame shows the number, then the name")
 
+-- mouseover casting (asked 10 Nov): your kick key over a frame kicks that enemy, target kept
+local mo = {}
+function SetMouseoverUnit(u) mo.unit = u end
+local usedSlot
+function UseAction(slot) usedSlot = slot end
+function GetActionTexture(slot) return "Interface\\Icons\\Slot" .. slot end
+function GetActionText(slot) if slot == 9 then return "MyMacro" end return nil end
+OctoArenaScanTipTextLeft1 = { GetText = function() return Mock.tipName end }
+A.mouseHooked = nil
+A:HookMouseCast()
+local f1 = F.frames[1]
+local targetBefore = Mock.target
+Mock.over = f1
+this = f1
+f1:GetScript("OnEnter")()
+ok(A.hover == 1 and mo.unit == MAGE, "hovering an enemy frame makes it the game's mouseover")
+ok(f1.label == MAGE and f1.id == "", "and pfUI's /pfcast can read it")
+Mock.casted = {}
+Mock.tipName = "Kick"
+UseAction(5)
+ok(usedSlot == nil and Mock.casted[1] and Mock.casted[1][1] == "Kick" and Mock.casted[1][2] == MAGE,
+  "the Kick button casts Kick at the enemy under the mouse")
+ok(Mock.target == targetBefore, "your target does not change")
+Mock.tipName = "Frostbolt"
+UseAction(6)
+ok(usedSlot == 6, "other spells go on as usual")
+usedSlot = nil
+UseAction(9)
+ok(usedSlot == 9, "a macro button runs its macro (its /cast comes back through here)")
+Mock.casted = {}
+CastSpellByName("Kick(Rank 3)")
+ok(Mock.casted[1] and Mock.casted[1][1] == "Kick" and Mock.casted[1][2] == MAGE, "a /cast Kick macro too")
+Mock.casted = {}
+CastSpellByName("Kick", "target")
+ok(Mock.casted[1] and Mock.casted[1][2] == "target", "a cast with its own unit is left alone")
+A.db.mouseCast = "all"
+Mock.casted, usedSlot = {}, nil
+UseAction(6)
+ok(usedSlot == nil and Mock.casted[1] and Mock.casted[1][1] == "Frostbolt" and Mock.casted[1][2] == MAGE, "every spell, when set")
+A.db.mouseCast = "off"
+Mock.tipName = "Kick"
+UseAction(5)
+ok(usedSlot == 5, "off: as usual")
+A.db.mouseCast = "kicks"
+this = f1
+f1:GetScript("OnLeave")()
+Mock.over = nil
+usedSlot = nil
+UseAction(5)
+ok(usedSlot == 5 and A.hover == nil and mo.unit == nil, "mouse gone: as usual, mouseover cleared")
+Mock.over = nil
+A.hover = 1     -- the mouse left without OnLeave (frame moved away under it)
+usedSlot = nil
+UseAction(5)
+ok(usedSlot == 5 and A.hover == nil, "only while the mouse is really on the frame")
+ok(BINDING_NAME_OCTOARENA_KICKMOUSE ~= nil, "key binding for the enemy under the mouse")
+
 -- health, power, states
 local mage, rogue, lock = A.enemies[1], A.enemies[2], A.enemies[3]
 Mock.units[MAGE].hp = 42
@@ -852,6 +909,42 @@ ok(A.enemies[1].name == "Duskfang-NZ", "and leaves the right ones where they are
 ok(A:SlotCount(5) == 3, "three enemies, as the list says")
 Mock.Fire("BUFF_ADDED_OTHER", "0x00000000F8CE15D1", 3, 10938)
 ok(not A.byName["wrongun"], "not on the list: stays out")
+
+-- a teammate who joins late (asked 10 Nov): never an enemy frame
+local LATE = "0x00000000F8CE15C3"
+Mock.Enemy(LATE, "Latecomer", "DRUID", 2, 2, { locked = true })
+Leave()
+Enter()
+Mock.Tick(2.5)
+ok(A:GroupSettled() and A:Max() == 3, "a 3v3 by your group")
+Mock.Fire("BUFF_ADDED_OTHER", LATE, 3, 10938)
+ok(A.byName["latecomer"], "before they are in the group a guess can take them")
+Mock.party = 3
+Mock.units["party3"] = { name = "Latecomer" }       -- in the group, not loaded yet (no GUID)
+Mock.Fire("PARTY_MEMBERS_CHANGED")
+ok(not A.byName["latecomer"], "the moment they are in your group they leave the enemy frames")
+Mock.Fire("BUFF_ADDED_OTHER", LATE, 3, 10938)
+Mock.Tick(1.1)
+ok(not A.byName["latecomer"], "and are never taken again")
+ok(A:Max() == 5, "a group of four is a 5v5 missing someone: five frames")
+Server(ROSTER)
+ok(not A.byName["latecomer"] and A:Max() == 3, "the server's list says 3v3 after all")
+Mock.party = 2
+Mock.units["party3"] = nil
+Mock.units[LATE] = nil
+
+-- the size follows the match, whatever format was picked for outside
+Leave()
+A.db.format = "5v5"
+Enter()
+Mock.Tick(2.5)
+ok(A:Max() == 3, "5v5 picked, but this match is your group's size: 3")
+A.db.arenaDetect = false
+ok(A:Max() == 5, "switched off: the format picked")
+A.db.arenaDetect = true
+A.db.format = "auto"
+ok(A.Bracket(1) == 1 and A.Bracket(2) == 2 and A.Bracket(4) == 5 and A.Bracket(9) == 5, "group size to match size")
+Leave()
 GetUnitGUID = realGuid
 UnitExists = realExists
 

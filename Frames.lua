@@ -107,13 +107,19 @@ local function NewFrame(i)
     F:SavePos()
   end)
   f:SetScript("OnEnter", function()
+    A:HoverEnter(this.i)
     if A.db.locked then return end
     GameTooltip:SetOwner(this, "ANCHOR_LEFT")
     GameTooltip:AddLine("Enemy " .. this.i)
-    GameTooltip:AddLine("Drag to move. Click: target. Right-click: focus. Middle-click: your interrupt.", 1, 1, 1, 1)
+    GameTooltip:AddLine("Drag to move. Click: target. Right-click: focus. Middle-click: your interrupt. "
+      .. "Your interrupt key while the mouse is here kicks this enemy.", 1, 1, 1, 1)
     GameTooltip:Show()
   end)
-  f:SetScript("OnLeave", function() GameTooltip:Hide() end)
+  f:SetScript("OnLeave", function()
+    A:HoverLeave(this.i)
+    GameTooltip:Hide()
+  end)
+  f:SetScript("OnHide", function() A:HoverLeave(this.i) end)
 
   -- class / crowd control icon
   local ic = CreateFrame("Frame", nil, f)

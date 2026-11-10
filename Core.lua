@@ -14,7 +14,7 @@
 -- See CLAUDE.md.
 
 local A = OctoArenaFrames
-A.VERSION = "1.0.2"
+A.VERSION = "1.0.3"
 A.MAX = 5              -- the most enemies (5v5)
 
 A.FORMATS = {
@@ -98,6 +98,8 @@ A.SCHOOL_LABEL = { [0] = "Physical", [1] = "Holy", [2] = "Fire", [3] = "Nature",
 A.DEFAULTS = {
   -- who
   format = "auto",               -- auto / 2v2 / 3v3 / 5v5 / bg
+  arenaDetect = true,            -- in an arena: 2v2 / 3v3 / 5v5 found out per match, whatever the format
+  mouseCast = "kicks",           -- spells pressed over an enemy frame go to that enemy: kicks / all / off
   bgAuto = true,                 -- battlegrounds switch to BG / World by themselves
   mode = "auto",                 -- auto: arenas fill by themselves / strict: only the named players
   worldFill = false,             -- auto mode outside arenas too
@@ -271,7 +273,8 @@ function A:InArena() return self.zone == "arena" end
 -- an arena is never BG / World whatever the setting says.
 function A:Format()
   if self.zone == "arena" then
-    if self.db.format == "bg" then return "auto" end
+    -- in a match the size is found out (2v2, 3v3, 5v5), unless switched off
+    if self.db.format == "bg" or self.db.arenaDetect then return "auto" end
     return self.db.format
   end
   if self.db.bgAuto and self.zone == "pvp" then return "bg" end
@@ -289,13 +292,29 @@ function A:Max()
   if self.test then return self.testMax or 3 end
   local known = self:SlotCount(A.MAX)
   if self.zone == "arena" then
-    -- what the server says the other team is, else as many as your own
-    local own = self.scoreSize or self:OwnTeamSize()
+    -- what the server says the other team is, else as many as your own group (late
+    -- joiners count: the group roster has them before they load in)
+    local own = self.scoreSize or A.Bracket(self:OwnTeamSize())
     if own > A.MAX then own = A.MAX end
     if known > own then return known end
     return own
   end
   return known
+end
+
+-- A group size as a match size: 4 can only be a 5v5 missing someone.
+function A.Bracket(n)
+  if not n or n < 1 then return 1 end
+  if n == 4 then return 5 end
+  if n > A.MAX then return A.MAX end
+  return n
+end
+
+-- What this match is, in words ("3v3"), for the badge and the log.
+function A:MatchSize()
+  local n = self:Max()
+  if n < 1 then return "?" end
+  return n .. "v" .. n
 end
 
 function A.FormatLabel(f)
@@ -639,6 +658,8 @@ SlashCmdList["OCTOARENAFRAMES"] = function(msg)
     A:FocusEnemy(tonumber(rest))
   elseif cmd == "kick" and tonumber(rest) then
     A:KickEnemy(tonumber(rest))
+  elseif cmd == "kick" and (rest == "mouse" or rest == "mouseover") then
+    A:KickHovered()
   elseif cmd == "cast" then
     local _, _, n, spell = string.find(rest or "", "^(%d+)%s+(.+)$")
     if n then A:CastAtEnemy(tonumber(n), spell) end
@@ -684,3 +705,4 @@ for i = 1, A.MAX do
   setglobal("BINDING_NAME_OCTOARENA_FOCUS" .. i, "Focus enemy " .. i)
   setglobal("BINDING_NAME_OCTOARENA_KICK" .. i, "Interrupt enemy " .. i)
 end
+BINDING_NAME_OCTOARENA_KICKMOUSE = "Interrupt the enemy under the mouse"

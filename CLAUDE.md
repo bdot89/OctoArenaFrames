@@ -99,6 +99,20 @@ sight with can attack / enemy), "complete". After the first real match READ THIS
   mobility first with a coloured edge), `F:PaintBuffs`; Metrics `m.top` = row height, inside `m.pitch`. No timers
   (1.12 sends none for other players). Cleared when out of sight.
 
+## 1.0.3 (10 Nov 2026, NOT seen in game)
+- Teammates never in enemy frames: RebuildFriends also keeps `friendNames` (party / raid roster names, known
+  before a late joiner loads); `A:IsFriend(name, guid)` (GUID, names, server team list, UnitInParty / UnitInRaid
+  with the GUID, pcall'd) guards Consider, ConsiderToken and AutoFill; `A:DropFriends` empties auto slots that
+  hold a teammate on every roster rebuild (PARTY_MEMBERS_CHANGED, scans). Named slots are left (duel practice).
+- Match size: `db.arenaDetect` (default on) makes Format() "auto" in arenas whatever was picked; Max() = server
+  list size, else `A.Bracket(group size)` (4 -> 5).
+- Mouseover casting (`db.mouseCast` kicks | all | off): frame OnEnter -> A:HoverEnter (SuperWoW SetMouseoverUnit
+  with the GUID, f.label / f.id for pfUI's /pfcast); `A:HookMouseCast` at PLAYER_ENTERING_WORLD wraps
+  UseAction (spell name from a scanning tooltip, cached by slot + texture; macros skipped), CastSpellByName (no
+  unit given) and CastSpell (spell book) -> A:MouseCast -> CastAtEnemy (GUID cast, target kept; plain client:
+  target swap and back). Only while MouseIsOver the frame. Binding OCTOARENA_KICKMOUSE, /oaf kick mouse.
+  Unverified: SetMouseoverUnit's no-argument clear, UseAction / CastSpell wrapping alongside pfUI's bars.
+
 ## Publishing (9 Nov 2026)
 Public repo github.com/bdot89/OctoArenaFrames (main). The OctoWoW launcher updates addons whose folder is a git
 clone: isomorphic-git reads the first remote, fetches, and compares HEAD with origin/<branch>; uncommitted

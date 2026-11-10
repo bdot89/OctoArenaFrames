@@ -432,6 +432,10 @@ function O:BuildMatch(p)
     fmts[i] = b
   end
   local fmtNote = col:Add(Note(p, "", 530, 28), 4)
+  col:Add(Switch(p, "Arenas find out the size by themselves (2v2, 3v3, 5v5)", function() return A.db.arenaDetect end,
+    function(v) A.db.arenaDetect = v end,
+    "In a match the frames follow that match: the server's team list when it comes, else the size of your own group "
+    .. "(teammates still loading count). Off: the format above is used in arenas too.", 400), 4)
   col:Add(Switch(p, "Battlegrounds switch to BG / World on their own", function() return A.db.bgAuto end,
     function(v) A.db.bgAuto = v end,
     "Inside a battleground the frames make way for rows of enemy cooldowns; outside it goes back to the format above. "
@@ -528,8 +532,12 @@ function O:BuildMatch(p)
         .. " setup comes back when you leave.")
     elseif bg then
       fmtNote.text:SetText("No frames and no names: enemy cooldowns pop up in a row per player near you and shrink away when ready.")
+    elseif A.zone == "arena" and A:Format() == "auto" then
+      fmtNote.text:SetText("|cff8cd1ffIn an arena now: " .. A:MatchSize() .. "|r, found out for this match.")
     elseif A.db.format == "auto" then
       fmtNote.text:SetText("As many frames as your own team in an arena, more if more enemies show up. Up to five.")
+    elseif A.db.arenaDetect then
+      fmtNote.text:SetText(A:Max() .. " frames here. In an arena the match's own size is used.")
     else
       fmtNote.text:SetText(A:Max() .. " frames, whoever is in them yet.")
     end
@@ -582,6 +590,11 @@ function O:BuildFrames(p)
     end), 4)
   g, s = Num("mirror") L:Add(Switch(p, "Mirror (icon on the right)", g, s,
     "For frames on the left of the screen: the class icon goes right, and diminishing returns grow to the right."), 8)
+  L:Add(Cycle(p, "Mouseover casting", { { "kicks", "Interrupts" }, { "all", "Every spell" }, { "off", "Off" } },
+    function() return A.db.mouseCast end, function(v) A.db.mouseCast = v end, 110,
+    "With the mouse over an enemy's frame, pressing your interrupt (button, key or /cast macro) casts it at that enemy. "
+    .. "Your target does not change. Every spell: all your spells go there while the mouse is on a frame. "
+    .. "Key binding: Interrupt the enemy under the mouse."), 8)
   L:Add(Button(p, "Reset layout", 120, function() A:ResetLayout() end,
     "Frames, Cooldowns, Strips, Spells and Alerts back to default. Keeps the enemies and the format."))
 

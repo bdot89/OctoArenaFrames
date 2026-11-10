@@ -14,4 +14,5 @@
 	<Binding name="OCTOARENA_KICK3">OctoArenaFrames:KickEnemy(3)</Binding>
 	<Binding name="OCTOARENA_KICK4">OctoArenaFrames:KickEnemy(4)</Binding>
 	<Binding name="OCTOARENA_KICK5">OctoArenaFrames:KickEnemy(5)</Binding>
+	<Binding name="OCTOARENA_KICKMOUSE">OctoArenaFrames:KickHovered()</Binding>
 </Bindings>

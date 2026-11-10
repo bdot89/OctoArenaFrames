@@ -162,6 +162,53 @@ function A:RebuildFriends()
   g = A.GuidOf("pet")
   if g then f[g] = true end
   self.friends, self.friendsN = f, players
+  -- names too: a teammate still loading (or who joins late) has a name in the group
+  -- before the client has their GUID, and must never be taken for an enemy
+  local names = {}
+  local me = A.Key(UnitName("player"))
+  if me then names[me] = true end
+  for i = 1, nr do
+    local n = A.RealName(UnitName("raid" .. i))
+    if not n and GetRaidRosterInfo then n = A.RealName((GetRaidRosterInfo(i))) end
+    if n then names[A.Key(n)] = true end
+  end
+  for i = 1, (GetNumPartyMembers and GetNumPartyMembers() or 0) do
+    local n = A.RealName(UnitName("party" .. i))
+    if n then names[A.Key(n)] = true end
+  end
+  self.friendNames = names
+  self:DropFriends()
+end
+
+-- Is this one of your own team (name, GUID, or the game says they are in your group)?
+function A:IsFriend(name, guid)
+  if guid and self.friends and self.friends[guid] then return true end
+  local key = A.Key(A.RealName(name))
+  if key and ((self.friendNames and self.friendNames[key]) or (self.teamAlly and self.teamAlly[key])) then return true end
+  if guid and A.IsGuid(guid) then
+    if UnitInParty then
+      local ok, yes = pcall(UnitInParty, guid)
+      if ok and yes then return true end
+    end
+    if UnitInRaid then
+      local ok, yes = pcall(UnitInRaid, guid)
+      if ok and yes then return true end
+    end
+  end
+  return false
+end
+
+-- An enemy slot that turns out to hold a teammate (they arrived late, the guess took
+-- them) gives way at once. Slots you named yourself are left alone (duel practice).
+function A:DropFriends()
+  if not self.enemies or self.test then return end
+  for i = 1, A.MAX do
+    local e = self.enemies[i]
+    if e and e.auto and e.name and self:IsFriend(e.name, e.guid) then
+      self:Log("server", "a teammate, not an enemy: " .. e.name)
+      self:SetSlot(i, nil)
+    end
+  end
 end
 
 -- Is your whole group known, a moment after entering? Only then can "not on my team"
@@ -239,6 +286,7 @@ end
 function A:AutoFill(name, guid, class)
   name = A.RealName(name)
   if not name or not self:MayFill() then return nil end
+  if self:IsFriend(name, guid) then return nil end   -- never a teammate, whatever saw them
   local cap = A.MAX
   local f = self:Format()
   if f == "2v2" then cap = 2 elseif f == "3v3" then cap = 3 elseif f == "5v5" then cap = 5 end
@@ -297,7 +345,7 @@ function A:Consider(guid, src)
   end
   if not name then return nil end
   local key = A.Key(name)
-  if self.teamAlly and self.teamAlly[key] then
+  if self:IsFriend(name, guid) then
     Reject(self, guid)
     return nil
   end
@@ -332,7 +380,7 @@ function A:ConsiderToken(unit)
   if not name or name == UnitName("player") then return end
   local key = A.Key(name)
   local e = self:FindSlot(name)
-  if not e and not (self.teamAlly and self.teamAlly[key]) then
+  if not e and not self:IsFriend(name, A.GuidOf(unit)) then
     local yes
     if self.teamEnemy then yes = self.teamEnemy[key] else yes = UnitCanAttack("player", unit) end
     if yes then
