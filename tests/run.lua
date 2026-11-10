@@ -1258,6 +1258,24 @@ A.db.locked = false
 A.dirty = true
 Mock.Tick(0.1)
 ok(F.handle.shown, "unlocked: a handle to drag")
+-- the bar's look (asked 10 Nov: "make this look professional")
+local hb = F.handle
+ok(hb.title.text == "OCTO ARENA" and hb.chip.text.text ~= nil, "title and status chip")
+ok(not string.find(hb.chip.text.text, "Auto  Auto", 1, true), "no doubled words")
+local tag, size, count = A:StatusParts()
+ok(tag == "AUTO" and count ~= nil, "status in parts: " .. tostring(tag) .. " / " .. tostring(size) .. " / " .. tostring(count))
+ok(hb.lock.shown and not hb.stop.shown and hb.opts.shown, "lock and options buttons")
+ok(string.find(A:StatusText(), tag, 1, true) == 1, "one-line status for the options window")
+hb.lock:GetScript("OnClick")()
+ok(A.db.locked, "the lock button locks")
+A.db.locked = false
+A:SetTest(true)
+Mock.Tick(0.1)
+ok(hb.stop.shown and not hb.lock.shown and string.find(hb.chip.text.text, "TEST", 1, true), "in a test: TEST chip and a stop button")
+hb.stop:GetScript("OnClick")()
+ok(not A.test, "stop ends the test")
+A.dirty = true
+Mock.Tick(0.1)
 F:SavePos()
 ok(A.db.pos and A.db.pos.left == 100 and A.db.pos.top == 700, "position saved")
 A.db.locked = true

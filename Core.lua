@@ -14,7 +14,7 @@
 -- See CLAUDE.md.
 
 local A = OctoArenaFrames
-A.VERSION = "1.0.3"
+A.VERSION = "1.0.4"
 A.MAX = 5              -- the most enemies (5v5)
 
 A.FORMATS = {
@@ -433,15 +433,30 @@ function A:Changed()
   if self.Options and self.Options.Refresh then self.Options:Refresh() end
 end
 
--- Badge text and colour.
-function A:StatusText()
-  if self.test then return "TEST  " .. A.FormatLabel(self:Format()), 0.75, 0.45, 1 end
-  if self:IsBG() then return "BG / WORLD", 0.55, 0.82, 1 end
+-- The status in three parts: mode tag, size, how many found, and its colour.
+-- Blue = BG / World, purple = test, green = everyone found, amber = looking, red =
+-- strict and someone missing.
+function A:StatusParts()
+  if self.test then
+    return self.testFull and "FULL TEST" or "TEST", self:MatchSize(), "samples", 0.75, 0.45, 1
+  end
+  if self:IsBG() then return "BG / WORLD", nil, "cooldown rows", 0.4, 0.75, 1 end
   local n, max = self:SlotCount(), self:Max()
-  local fmt = A.FormatLabel(self:Format())
-  if self.db.mode == "auto" then return "AUTO  " .. fmt .. "  " .. n .. "/" .. max, 1, 0.7, 0.1 end
-  if n == max and max > 0 then return "STRICT  " .. fmt .. "  " .. n .. "/" .. max, 0.2, 0.9, 0.3 end
-  return "STRICT  " .. fmt .. "  " .. n .. "/" .. max, 1, 0.3, 0.2
+  local tag = self.db.mode == "auto" and "AUTO" or "STRICT"
+  local size = max > 0 and self:MatchSize() or (self:Format() == "auto" and "any size" or A.FormatLabel(self:Format()))
+  local count = max > 0 and (n .. "/" .. max .. " found") or "waiting for a match"
+  if max > 0 and n >= max then return tag, size, count, 0.3, 0.9, 0.4 end
+  if tag == "STRICT" then return tag, size, count, 1, 0.35, 0.3 end
+  return tag, size, count, 1, 0.72, 0.2
+end
+
+-- The same as one line (the options window's corner).
+function A:StatusText()
+  local tag, size, count, r, g, b = self:StatusParts()
+  local text = tag
+  if size then text = text .. "  ·  " .. size end
+  if count then text = text .. "  ·  " .. count end
+  return text, r, g, b
 end
 
 function A:DetectionText()

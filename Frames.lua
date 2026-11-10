@@ -216,12 +216,71 @@ function F:Build()
   a:SetWidth(100)
   a:SetHeight(20)
   self.anchor = a
-  -- the handle: only there while unlocked
+  self.handle = self:BuildHandle(a)
+  -- the badge: format and how many enemies are known
+  local b = a:CreateFontString(nil, "OVERLAY")
+  b:SetFont(A.UI_FONT, 9, "OUTLINE")
+  self.badge = b
+  for i = 1, A.MAX do self.frames[i] = NewFrame(i) end
+  self:Place()
+end
+
+-- ---------------------------------------------------------------- the handle
+-- The bar over the frames while they are unlocked (or in a test): title, a status chip
+-- in the status colour (A:StatusParts), and lock / options buttons on the right. The
+-- how-to lives in its tooltip. Drag anywhere on it to move.
+local HANDLE_H = 22
+local TITLE_FONT = A.FontFile and A.FontFile("fira") or A.UI_FONT
+
+local function HandleTip(owner, title, lines)
+  GameTooltip:SetOwner(owner, "ANCHOR_TOP")
+  GameTooltip:AddLine(title, 1, 1, 1)
+  for i = 1, table.getn(lines) do GameTooltip:AddLine(lines[i], 0.75, 0.78, 0.84, 1) end
+  GameTooltip:Show()
+end
+
+-- A small square button with a picture (or a letter), grey until the mouse is on it.
+local function HandleButton(h, tex, text, tip, onClick)
+  local b = CreateFrame("Button", nil, h)
+  b:SetWidth(HANDLE_H - 4)
+  b:SetHeight(HANDLE_H - 4)
+  b.bg = b:CreateTexture(nil, "BACKGROUND")
+  b.bg:SetTexture(WHITE)
+  b.bg:SetAllPoints(b)
+  b.bg:SetVertexColor(1, 1, 1, 0)
+  if tex then
+    b.icon = b:CreateTexture(nil, "ARTWORK")
+    b.icon:SetTexture(tex)
+    b.icon:SetPoint("TOPLEFT", b, "TOPLEFT", 3, -3)
+    b.icon:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -3, 3)
+  else
+    b.icon = b:CreateFontString(nil, "OVERLAY")
+    b.icon:SetFont(TITLE_FONT, 11, "")
+    b.icon:SetPoint("CENTER", b, "CENTER", 0, 0)
+    b.icon:SetText(text)
+  end
+  local isText = not tex
+  local function Tint(on)
+    local v = on and 1 or 0.55
+    if isText then b.icon:SetTextColor(v, v, v) else b.icon:SetVertexColor(v, v, v) end
+    b.bg:SetVertexColor(1, 1, 1, on and 0.08 or 0)
+  end
+  Tint(false)
+  b:SetScript("OnEnter", function()
+    Tint(true)
+    HandleTip(this, tip[1], { tip[2] })
+  end)
+  b:SetScript("OnLeave", function()
+    Tint(false)
+    GameTooltip:Hide()
+  end)
+  b:SetScript("OnClick", onClick)
+  return b
+end
+
+function F:BuildHandle(a)
   local h = CreateFrame("Frame", nil, a)
-  h:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
-  h:SetBackdropColor(0.05, 0.1, 0.2, 0.9)
-  h:SetBackdropBorderColor(0.2, 0.6, 1, 0.9)
-  h:SetHeight(18)
+  h:SetHeight(HANDLE_H)
   h:EnableMouse(true)
   h:RegisterForDrag("LeftButton")
   h:SetScript("OnDragStart", function() a:StartMoving() end)
@@ -230,17 +289,101 @@ function F:Build()
     F:SavePos()
   end)
   h:SetScript("OnMouseUp", function() if arg1 == "RightButton" then A.Options:Toggle() end end)
-  h.text = h:CreateFontString(nil, "OVERLAY")
-  h.text:SetFont(A.UI_FONT, 10, "")
-  h.text:SetTextColor(0.8, 0.9, 1)
-  h.text:SetPoint("LEFT", h, "LEFT", 6, 0)
-  self.handle = h
-  -- the badge: format and how many enemies are known
-  local b = a:CreateFontString(nil, "OVERLAY")
-  b:SetFont(A.UI_FONT, 9, "OUTLINE")
-  self.badge = b
-  for i = 1, A.MAX do self.frames[i] = NewFrame(i) end
-  self:Place()
+  h:SetScript("OnEnter", function()
+    HandleTip(this, "OctoArenaFrames", { "Drag to move the frames.", "Right-click: options.",
+      "Lock them when they are where you want them." })
+  end)
+  h:SetScript("OnLeave", function() GameTooltip:Hide() end)
+  -- body: dark, a hairline edge, a thin accent line along the bottom
+  h.bg = h:CreateTexture(nil, "BACKGROUND")
+  h.bg:SetTexture(WHITE)
+  h.bg:SetAllPoints(h)
+  h.bg:SetVertexColor(0.055, 0.06, 0.075, 0.94)
+  h.edge = {}
+  local sides = { { "TOPLEFT", "TOPRIGHT", nil, 1 }, { "BOTTOMLEFT", "BOTTOMRIGHT", nil, 1 },
+                  { "TOPLEFT", "BOTTOMLEFT", 1, nil }, { "TOPRIGHT", "BOTTOMRIGHT", 1, nil } }
+  for k = 1, 4 do
+    local s = sides[k]
+    local t = h:CreateTexture(nil, "BORDER")
+    t:SetTexture(WHITE)
+    t:SetVertexColor(0, 0, 0, 1)
+    t:SetPoint(s[1], h, s[1], 0, 0)
+    t:SetPoint(s[2], h, s[2], 0, 0)
+    if s[3] then t:SetWidth(s[3]) end
+    if s[4] then t:SetHeight(s[4]) end
+    h.edge[k] = t
+  end
+  h.accent = h:CreateTexture(nil, "ARTWORK")
+  h.accent:SetTexture(WHITE)
+  h.accent:SetHeight(1)
+  h.accent:SetPoint("BOTTOMLEFT", h, "BOTTOMLEFT", 1, 1)
+  h.accent:SetPoint("BOTTOMRIGHT", h, "BOTTOMRIGHT", -1, 1)
+  -- left: a status stripe and the title
+  h.stripe = h:CreateTexture(nil, "ARTWORK")
+  h.stripe:SetTexture(WHITE)
+  h.stripe:SetWidth(3)
+  h.stripe:SetPoint("TOPLEFT", h, "TOPLEFT", 1, -1)
+  h.stripe:SetPoint("BOTTOMLEFT", h, "BOTTOMLEFT", 1, 1)
+  h.title = h:CreateFontString(nil, "OVERLAY")
+  h.title:SetFont(TITLE_FONT, 11, "")
+  h.title:SetTextColor(0.93, 0.94, 0.96)
+  h.title:SetPoint("LEFT", h, "LEFT", 10, 0)
+  h.title:SetText("OCTO ARENA")
+  -- the status chip
+  h.chip = CreateFrame("Frame", nil, h)
+  h.chip:SetHeight(HANDLE_H - 8)
+  h.chip:SetPoint("LEFT", h.title, "RIGHT", 8, 0)
+  h.chip.bg = h.chip:CreateTexture(nil, "ARTWORK")
+  h.chip.bg:SetTexture(WHITE)
+  h.chip.bg:SetAllPoints(h.chip)
+  h.chip.text = h.chip:CreateFontString(nil, "OVERLAY")
+  h.chip.text:SetFont(TITLE_FONT, 10, "")
+  h.chip.text:SetPoint("LEFT", h.chip, "LEFT", 6, 0)
+  h.count = h:CreateFontString(nil, "OVERLAY")
+  h.count:SetFont(A.UI_FONT, 10, "")
+  h.count:SetTextColor(0.62, 0.66, 0.72)
+  h.count:SetPoint("LEFT", h.chip, "RIGHT", 7, 0)
+  -- right: options, then lock (or stop, during a test)
+  h.opts = HandleButton(h, "Interface\\Icons\\INV_Misc_Gear_01", nil, { "Options", "Every setting of OctoArenaFrames." },
+    function() A.Options:Toggle() end)
+  h.opts.icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+  h.opts:SetPoint("RIGHT", h, "RIGHT", -3, 0)
+  h.lock = HandleButton(h, "Interface\\ChatFrame\\UI-ChatFrame-LockIcon", nil,
+    { "Lock the frames", "The bar goes and the frames stay put. Unlock again in the options or with /oaf lock." },
+    function()
+      A.db.locked = true
+      A:Changed()
+    end)
+  h.lock:SetPoint("RIGHT", h.opts, "LEFT", -2, 0)
+  h.stop = HandleButton(h, nil, "STOP", { "Stop the test", "The sample enemies go away." },
+    function() A:SetTest(false) end)
+  h.stop:SetWidth(36)
+  h.stop:SetPoint("RIGHT", h.opts, "LEFT", -2, 0)
+  return h
+end
+
+-- Fills the handle from the status; the count hides when the bar is too narrow.
+function F:PaintHandle(h, w)
+  local tag, size, count, r, g, b = A:StatusParts()
+  h:SetWidth(w)
+  h.stripe:SetVertexColor(r, g, b, 1)
+  h.accent:SetVertexColor(r, g, b, 0.55)
+  h.chip.text:SetText(tag .. (size and ("  " .. size) or ""))
+  h.chip.text:SetTextColor(r, g, b)
+  h.chip.bg:SetVertexColor(r, g, b, 0.14)
+  h.chip:SetWidth((h.chip.text:GetStringWidth() or 40) + 12)
+  local inTest = A.test and true or false
+  if inTest then h.stop:Show() h.lock:Hide() else h.stop:Hide() h.lock:Show() end
+  if A.db.locked then h.lock:Hide() end
+  -- the count in the room left between the chip and the buttons: "1/3 found", else
+  -- "1/3", else nothing
+  local room = w - (10 + (h.title:GetStringWidth() or 70) + 8 + h.chip:GetWidth() + 7)
+    - (3 + h.opts:GetWidth() + 2 + (inTest and h.stop:GetWidth() or h.lock:GetWidth()) + 6)
+  local short = count and (string.gsub(count, " found$", "")) or ""
+  if short == "waiting for a match" then short = "no match" end
+  h.count:SetText(count or "")
+  if (h.count:GetStringWidth() or 0) > room then h.count:SetText(short) end
+  if (h.count:GetStringWidth() or 0) > room then h.count:Hide() else h.count:Show() end
 end
 
 -- The position lives in our settings only. StartMoving marks a frame "user placed",
@@ -463,9 +606,7 @@ function F:Layout(now)
   else
     h:ClearAllPoints()
     h:SetPoint("BOTTOMLEFT", a, "TOPLEFT", 0, 4)
-    h:SetWidth(m.W)
-    local text = A:StatusText()
-    h.text:SetText(text .. (db.locked and "" or "   |cff99bbddDrag to move, right-click for options|r"))
+    self:PaintHandle(h, m.W)
     h:Show()
   end
   self.badge:Hide()
