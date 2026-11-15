@@ -1,20 +1,74 @@
-# OctoArenaFrames
+<p align="center"><img src="docs/banner.png" alt="OctoArenaFrames" width="100%"></p>
 
-Arena frames for OctoWoW (1.12.1 client) with SuperWoW, nampower and ClassicAPI: fast cast bars,
-interrupts, cooldowns taken from this game's own spell data (not retail), trinkets, racials, crowd
-control, diminishing returns. The OctoKicks interrupt tracker is built in.
+<p align="center">
+  <a href="https://github.com/bdot89/OctoArenaFrames/releases/latest"><img src="https://img.shields.io/github/v/release/bdot89/OctoArenaFrames?label=download&style=for-the-badge&color=33b3ff" alt="Download"></a>
+  <img src="https://img.shields.io/badge/WoW-1.12.1%20%C2%B7%20OctoWoW-9a6bff?style=for-the-badge" alt="WoW 1.12.1 OctoWoW">
+  <img src="https://img.shields.io/badge/price-free-33ffcc?style=for-the-badge" alt="Free">
+</p>
 
-> Early version: tested offline, not yet seen in a real match. Bug reports welcome, with the output
-> of `/oaf probe` and `/oaf errors`.
+# ⚔️ OctoArenaFrames
 
-## Install
+**Arena frames made for OctoWoW.** Every enemy on your screen: every cast, every kick, every
+cooldown. The **OctoKicks** interrupt tracker is built in.
 
-**With the OctoWoW launcher (keeps it updated):** add it from its git link,
-`https://github.com/bdot89/OctoArenaFrames.git`. The launcher then shows when an update is out.
+- ⚡ **Fast cast bars** with kicks and lockouts (`LOCKED: Frost 5.2`)
+- ⏱️ **OctoWoW's own cooldowns**, read from the game's spell data, not retail
+- 😵 **Crowd control on the class icon**, with a timer and DR (50% · 25% · IMM)
+- 🏅 **PvP trinket and racial**, bright when ready
+- 🎯 **Who each enemy targets**, `> YOU` in red
+- 🖱️ **Mouseover casting**: mouse over a frame and press any offensive spell or kick
+- 🧩 **2v2 · 3v3 · 5v5** found by itself, each with its own place and size
+- 🔍 **Finds the enemy team before the gates open**
+- 🏟️ **OctoKicks built in**: tournament mode, BG / World rows, interrupt bar
 
-**By hand:**
+## 📸 Screenshots
 
-1. Download **OctoArenaFrames-<version>.zip** (under Assets) from the
+<p align="center">
+  <img src="docs/frames-fight.jpg" alt="Frames in a fight: CC, DR, kicks and cast bars" width="49%">
+  <img src="docs/frames-channel.jpg" alt="A channelled cast and the interrupt bar" width="49%">
+</p>
+<p align="center">
+  <img src="docs/frames-fight2.jpg" alt="Cooldowns and trinkets after a kick" width="49%">
+  <img src="docs/frames-3v3.jpg" alt="3v3 layout" width="49%">
+</p>
+<p align="center"><img src="docs/frames-5v5.jpg" alt="5v5 layout" width="32%"></p>
+
+<details>
+<summary><b>⚙️ The options window</b> (click to open)</summary>
+<p align="center">
+  <img src="docs/page-match.jpg" alt="Match page" width="49%">
+  <img src="docs/page-frames.jpg" alt="Frames page" width="49%">
+  <img src="docs/page-cooldowns.jpg" alt="Cooldowns page" width="49%">
+  <img src="docs/page-strips.jpg" alt="Strips page" width="49%">
+  <img src="docs/page-alerts.jpg" alt="Alerts page" width="49%">
+</p>
+</details>
+
+## 🔌 DLLs: all optional
+
+It works without any DLLs. With them it sees more, faster.
+
+| DLL | What it adds |
+| --- | --- |
+| ✅ **SuperWoW** *(recommended)* | Exact tracking and health for every enemy |
+| ✅ **nampower** | Instant aura and spell events |
+| ✅ **ClassicAPI** | Finds the enemy team by name, cast pushback, focus |
+| ➕ **UnitXP** | Fades enemies out of range or line of sight |
+
+Get them all in one click with the
+[**Octo DLL Installer**](https://github.com/bdot89/OctoDLLInstaller/releases/latest).
+
+## ⬇️ Install
+
+**🔗 With the OctoWoW launcher (updates itself):** add this git link
+
+```
+https://github.com/bdot89/OctoArenaFrames.git
+```
+
+**📦 By hand:**
+
+1. Download **OctoArenaFrames-&lt;version&gt;.zip** (under Assets) from the
    [latest release](https://github.com/bdot89/OctoArenaFrames/releases/latest) and unzip it into
    `Interface\AddOns`, so you end up with `Interface\AddOns\OctoArenaFrames\OctoArenaFrames.toc`.
    (Not the green "Code" button: that zip unpacks as `OctoArenaFrames-main`, which the game ignores.)
@@ -22,7 +76,9 @@ control, diminishing returns. The OctoKicks interrupt tracker is built in.
 3. If you used OctoKicks, its settings are copied over on first login and a popup offers to switch
    it off.
 
-## Commands
+Then type `/oaf` for the options and `/oaf test` to see the frames.
+
+## ⌨️ Commands
 
 | Command | What it does |
 | --- | --- |
@@ -37,7 +93,13 @@ control, diminishing returns. The OctoKicks interrupt tracker is built in.
 | `/oaf probe`, `/oaf errors` | Diagnostics for bug reports |
 | `/oaf reset` | Reset settings |
 
-## Notes
+## 🐛 Bugs
+
+New addon: tested in game, not yet in many real matches. Please report bugs in
+[Issues](https://github.com/bdot89/OctoArenaFrames/issues) with the output of `/oaf probe` and
+`/oaf errors` 🙏
+
+## 📝 Notes
 
 - Cooldowns come from `Data\SpellData.lua`, generated from the client's Spell.dbc by
   `tools\BuildSpellData.ps1`.
