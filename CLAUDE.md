@@ -148,3 +148,9 @@ SuperWoW on enemies; DR groups and the 15 s window on this server (groups follow
 cap on all crowd control (measured on few spells); ClassicAPI FocusUnit with a GUID; BUFF / DEBUFF_*_OTHER firing for
 enemies; SetDesaturated; Middle-click on a Button; trinket 180 s.
 Ask for `/oaf probe` and `/oaf errors` first with any report.
+
+## 1.0.7 (15 Nov 2026): release pictures + Spells box
+- docs\ (export-ignored): tools\MakeShots.ps1 crops the user's /oaf test screenshots (2560x1600, 15 Nov) into
+  page-*.jpg / frames-*.jpg; docs\src\banner.html (pfUI Octo's banner style, fonts from ..\pfUI\fonts) rendered by
+  msedge headless to banner.png (command in its head); docs\discord-post.md = the Discord post (< 2000 chars).
+- Spells page: the cooldown box was 36 wide, 4 digits (1800) showed as "00"; now 44 (seen in those screenshots).

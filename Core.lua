@@ -14,7 +14,7 @@
 -- See CLAUDE.md.
 
 local A = OctoArenaFrames
-A.VERSION = "1.0.6"
+A.VERSION = "1.0.7"
 A.MAX = 5              -- the most enemies (5v5)
 
 A.FORMATS = {

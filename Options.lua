@@ -817,7 +817,7 @@ function O:BuildSpells(p)
     name:SetPoint("LEFT", icon, "RIGHT", 4, 0)
     name:SetWidth(108)
     name:SetHeight(20)
-    local e = Edit(row, 36, function(text)
+    local e = Edit(row, 44, function(text)     -- room for 4 digits (1800 showed as "00" at 36)
       local s = row.spell
       if not s then return end
       local v = tonumber(text)
