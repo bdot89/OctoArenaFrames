@@ -574,6 +574,18 @@ function O:BuildFrames(p)
   local function place() A.Frames:Place() end
 
   L:Add(Heading(p, "Frame"), 6)
+  L:Add(Switch(p, "2v2, 3v3 and 5v5 each have their own", function() return A.db.sizeLayouts end,
+    function(v) A.db.sizeLayouts = v end,
+    "Position, scale, bar width, height, gaps, cast bar, icon and name size are kept for each match size. "
+    .. "To set one up: Test mode, pick 2v2, 3v3 or 5v5 on the Match page, then move and size the frames.", 250), 0)
+  local sizeNote = L:Add(Note(p, "", 250, 14), 6)
+  table.insert(self.refresh, function()
+    if A.db.sizeLayouts and A.db.sizeNow then
+      sizeNote.text:SetText("Changes below are for the " .. A.db.sizeNow .. " frames.")
+    else
+      sizeNote.text:SetText(A.db.sizeLayouts and "" or "One layout for every match size.")
+    end
+  end)
   g = function() return A.db.scale end
   s = function(v) A.db.scale = v place() A.Bars:Place() end
   L:Add(Slider(p, "Scale", 0.5, 2, 0.05, g, s, pct))

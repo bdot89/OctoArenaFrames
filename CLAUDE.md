@@ -104,6 +104,10 @@ sight with can attack / enemy), "complete". After the first real match READ THIS
   before a late joiner loads); `A:IsFriend(name, guid)` (GUID, names, server team list, UnitInParty / UnitInRaid
   with the GUID, pcall'd) guards Consider, ConsiderToken and AutoFill; `A:DropFriends` empties auto slots that
   hold a teammate on every roster rebuild (PARTY_MEMBERS_CHANGED, scans). Named slots are left (duel practice).
+- Layout per match size (15 Nov 2026, not seen in game): `db.sizeLayouts` (on), Frames.lua `A:SizeLayout` swaps
+  `A.SIZE_KEYS` (pos, scale, barW, frameH, powerH, spacing, castH, cdSize, fontSize, grow) in and out of
+  `db.bySize["2v2"|"3v3"|"5v5"]` when Max() lands in another size (`db.sizeNow`); a new size starts from the current
+  values. Options and dragging edit the plain keys, so they always edit the size on screen.
 - Match size: `db.arenaDetect` (default on) makes Format() "auto" in arenas whatever was picked; Max() = server
   list size, else `A.Bracket(group size)` (4 -> 5).
 - Mouseover casting (`db.mouseCast` kicks | all | off): frame OnEnter -> A:HoverEnter (SuperWoW SetMouseoverUnit

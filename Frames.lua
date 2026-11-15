@@ -419,6 +419,40 @@ function F:Place()
   A.dirty = true
 end
 
+-- Each match size (2v2, 3v3, 5v5) keeps its own place and size: when the size changes,
+-- the settings in use are put away under the old size and the new size's are taken
+-- out. A size never set up yet starts from what was in use. The options and dragging
+-- keep working on the plain settings, so they always edit the size on screen.
+A.SIZE_KEYS = { "pos", "scale", "barW", "frameH", "powerH", "spacing", "castH", "cdSize", "fontSize", "grow" }
+
+function A.SizeKey(n)
+  if n <= 2 then return "2v2" elseif n == 3 then return "3v3" end
+  return "5v5"
+end
+
+function A:SizeLayout()
+  local db = self.db
+  if not db.sizeLayouts then return false end
+  local n = self:Max()
+  if n < 1 then return false end
+  local key = A.SizeKey(n)
+  if db.sizeNow == key then return false end
+  if type(db.bySize) ~= "table" then db.bySize = {} end
+  if db.sizeNow then
+    local t = {}
+    for _, k in ipairs(A.SIZE_KEYS) do t[k] = A.Copy(db[k]) end
+    db.bySize[db.sizeNow] = t
+  end
+  local saved = db.bySize[key]
+  if saved then
+    for _, k in ipairs(A.SIZE_KEYS) do
+      if saved[k] ~= nil or k == "pos" then db[k] = A.Copy(saved[k]) end
+    end
+  end
+  db.sizeNow = key
+  return true
+end
+
 function F:ShouldShow()
   local db = A.db
   if A:IsBG() then return false end
@@ -586,6 +620,7 @@ function F:Layout(now)
     return
   end
   a:Show()
+  if A:SizeLayout() then self:Place() end
   a:SetAlpha(db.alpha)
   local m = F.Metrics(db)
   self.m = m

@@ -1391,6 +1391,40 @@ ok(A.db.mode == "auto" and A.db.format == "auto", "an empty strict setup is not 
 Mock.loaded = nil
 OctoKicksDB = nil
 
+-- ---------------------------------------------------------------- a layout per match size
+A.db.sizeLayouts = true
+A.db.bySize, A.db.sizeNow = {}, nil
+A:SetFormat("2v2")
+A:SetTest(true)
+Mock.Tick(0.1)
+ok(A.db.sizeNow == "2v2", "test 2v2: the 2v2 layout is in use")
+A.db.scale, A.db.barW = 0.8, 150
+A.db.pos = { left = 10, top = 500, bottom = 400 }
+A:SetFormat("5v5")
+Mock.Tick(0.1)
+ok(A.db.sizeNow == "5v5", "5v5 now")
+ok(A.db.bySize["2v2"].scale == 0.8 and A.db.bySize["2v2"].barW == 150, "the 2v2 settings put away")
+A.db.scale, A.db.barW = 1.2, 200
+A.db.pos = { left = 900, top = 700, bottom = 100 }
+A:SetFormat("2v2")
+Mock.Tick(0.1)
+ok(A.db.scale == 0.8 and A.db.barW == 150 and A.db.pos.left == 10, "back to 2v2: its own place and size")
+A:SetFormat("5v5")
+Mock.Tick(0.1)
+ok(A.db.scale == 1.2 and A.db.barW == 200 and A.db.pos.left == 900, "5v5 kept its own")
+A:SetFormat("3v3")
+Mock.Tick(0.1)
+ok(A.db.sizeNow == "3v3" and A.db.scale == 1.2, "a size not set up yet starts from what was in use")
+A.db.sizeLayouts = false
+A:SetFormat("2v2")
+Mock.Tick(0.1)
+ok(A.db.sizeNow == "3v3" and A.db.scale == 1.2, "switched off: one layout for all")
+A.db.sizeLayouts = true
+A:SetTest(false)
+A:SetFormat("auto")
+A:ResetLayout()
+Mock.Tick(0.1)
+
 -- ---------------------------------------------------------------- the end
 if table.getn(A.errors) > 0 then
   for i = 1, table.getn(A.errors) do print("EVENT ERROR: " .. A.errors[i]) end

@@ -14,7 +14,7 @@
 -- See CLAUDE.md.
 
 local A = OctoArenaFrames
-A.VERSION = "1.0.5"
+A.VERSION = "1.0.6"
 A.MAX = 5              -- the most enemies (5v5)
 
 A.FORMATS = {
@@ -99,6 +99,8 @@ A.DEFAULTS = {
   -- who
   format = "auto",               -- auto / 2v2 / 3v3 / 5v5 / bg
   arenaDetect = true,            -- in an arena: 2v2 / 3v3 / 5v5 found out per match, whatever the format
+  sizeLayouts = true,            -- 2v2, 3v3 and 5v5 each keep their own place and size (Frames.lua A:SizeLayout)
+  bySize = {},                   -- size -> the put-away settings of A.SIZE_KEYS
   mouseCast = "harmful",         -- spells pressed over an enemy frame go to that enemy: harmful / kicks / all / off
   bgAuto = true,                 -- battlegrounds switch to BG / World by themselves
   mode = "auto",                 -- auto: arenas fill by themselves / strict: only the named players
@@ -600,7 +602,7 @@ end
 -- ---------------------------------------------------------------- profiles
 
 -- Layout, numbers, spells and alerts (not the enemies or the format).
-A.PROFILE_SKIP = { slots = true, mode = true, format = true }
+A.PROFILE_SKIP = { slots = true, mode = true, format = true, sizeNow = true }
 
 function A:SaveProfile(name)
   name = name and string.gsub(name, "^%s*(.-)%s*$", "%1")
