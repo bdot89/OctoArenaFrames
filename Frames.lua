@@ -55,7 +55,13 @@ function F.Metrics(db)
     if m.buffMax > db.buffMax then m.buffMax = db.buffMax end
   end
   m.pitch = m.top + m.total + db.spacing
-  m.outer = db.drSize
+  -- beside the frame, on the outer side: the aura strip level with the top, the
+  -- diminishing returns under it. That side is free down to the cooldown row, so the
+  -- DR icons may be taller than half the frame (they were 23 px and hard to see).
+  m.stripSize = db.strip and db.stripSize or 0
+  m.drY = m.stripSize > 0 and (m.stripSize + m.gap) or 0
+  m.drSize = math.max(12, math.min(db.drSize, m.total - m.drY))
+  m.outer = math.max(m.drSize, m.stripSize)
   return m
 end
 
@@ -222,6 +228,7 @@ function F:Build()
   b:SetFont(A.UI_FONT, 9, "OUTLINE")
   self.badge = b
   for i = 1, A.MAX do self.frames[i] = NewFrame(i) end
+  self:BuildSelf()
   self:Place()
 end
 
@@ -417,6 +424,7 @@ function F:Place()
   end
   self.settingsKey = nil
   A.dirty = true
+  self:PlaceSelf()
 end
 
 -- Each match size (2v2, 3v3, 5v5) keeps its own place and size: when the size changes,
@@ -456,7 +464,7 @@ end
 function F:ShouldShow()
   local db = A.db
   if A:IsBG() then return false end
-  if A.test or not db.locked or A.zone == "arena" then return true end
+  if A.test or not db.locked or A.zone == "arena" or A.duelSlot then return true end
   if db.showWhen == "always" then return true end
   if db.showWhen == "set" then return A:SlotCount(A.MAX) > 0 end
   return false
@@ -731,8 +739,7 @@ function F:Fill(f, e, db, m, px, now)
   local dn = 0
   if db.dr and e.name then dn = A.DrList(e, f.drKeys) end
   f.drN = dn
-  local size = db.drSize
-  local half = m.H - size
+  local size = m.drSize
   for k = 1, dn do
     local b = f.drIcons[k]
     if not b then
@@ -742,9 +749,10 @@ function F:Fill(f, e, db, m, px, now)
     end
     local off = (k - 1) * (size + 2) + 2 + size / 2
     local x = db.mirror and (m.W + off) or -off
-    I.Place(b, f, x, -(half + size / 2), size, px)
+    I.Place(b, f, x, -(m.drY + size / 2), size, px)
   end
   for k = dn + 1, table.getn(f.drIcons) do f.drIcons[k]:Hide() end
+  size = db.stripSize
   local sn = 0
   if db.strip and e.name and e.strip then
     sn = table.getn(e.strip)
@@ -887,6 +895,137 @@ local function IconView(b, e, s, now)
   return v
 end
 
+-- One diminishing-returns icon: the picture of what landed, a thick edge and a word in
+-- the stage's colour (green 50%, amber 25%, red IMM = what the NEXT one lands at), and
+-- at the top the seconds until it resets. Never greyed: it has to be seen at a glance.
+function F.PaintDr(b, dr, now)
+  local v = b.v
+  local left = dr.stop and (dr.stop - now) or 0
+  if left < 0 then left = 0 end
+  v.s, v.left, v.dur, v.start, v.used, v.solid, v.tex = nil, left, A.DR_WINDOW, dr.stop and (dr.stop - A.DR_WINDOW) or nil, true, true, dr.tex
+  v.kind = "dr" .. math.max(1, math.min(dr.level, 3))
+  v.own, v.bright, v.borderPx, v.numPos = true, true, 2, "TOP"
+  I.Paint(b, v, now)
+  local fs = math.max(9, math.floor(b.base * 0.36))
+  if b.tagSize ~= fs then
+    b.tagSize = fs
+    b.tag:SetFont(A.UI_FONT, fs, "OUTLINE")
+  end
+  local word = dr.level >= 3 and "IMM" or (dr.level == 2 and "25%" or "50%")
+  if b.lastTag ~= word then
+    b.lastTag = word
+    b.tag:SetText(word)
+    local c = A.KIND_COLOR[v.kind]
+    b.tag:SetTextColor(c[1], c[2], c[3])
+  end
+  b.tag:Show()
+end
+
+-- ---------------------------------------------------------------- your own row
+-- Crowd control on YOU (A:MeNow): the same icons in a row of their own, shown anywhere
+-- while there is something to show. Unlocked (or in a test) it is a box to drag.
+function F:BuildSelf()
+  if self.selfRow then return end
+  local s = CreateFrame("Frame", "OctoArenaFramesSelf", UIParent)
+  s:SetFrameStrata("MEDIUM")
+  s:SetMovable(true)
+  s:SetClampedToScreen(true)
+  s:SetWidth(120)
+  s:SetHeight(40)
+  s:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 1 })
+  s:SetBackdropColor(0, 0, 0, 0)
+  s:SetBackdropBorderColor(0, 0, 0, 0)
+  s:RegisterForDrag("LeftButton")
+  s:SetScript("OnDragStart", function() if not A.db.locked or A.test then this:StartMoving() end end)
+  s:SetScript("OnDragStop", function()
+    this:StopMovingOrSizing()
+    if this.SetUserPlaced then this:SetUserPlaced(false) end   -- see F:SavePos
+    local sc = this:GetEffectiveScale() / UIParent:GetEffectiveScale()
+    A.db.selfPos = { left = this:GetLeft() * sc, top = this:GetTop() * sc }
+    F:PlaceSelf()
+  end)
+  s:SetScript("OnMouseUp", function() if arg1 == "RightButton" then A.Options:Toggle() end end)
+  s.label = Text(s, 10, "LEFT")
+  s.label:SetPoint("BOTTOMLEFT", s, "TOPLEFT", 0, 2)
+  s.label:SetTextColor(1, 0.82, 0)
+  s.label:SetText("ON YOU")
+  s.hint = Text(s, 10, "CENTER")
+  s.hint:SetPoint("CENTER", s, "CENTER", 0, 0)
+  s.hint:SetTextColor(0.8, 0.8, 0.8)
+  s.hint:SetText("your diminishing returns")
+  s.icons, s.keys = {}, {}
+  s:Hide()
+  self.selfRow = s
+  self:PlaceSelf()
+end
+
+function F:PlaceSelf()
+  local s = self.selfRow
+  if not s or not A.db then return end
+  if s.SetUserPlaced then s:SetUserPlaced(false) end
+  s:SetScale(A.db.scale)
+  s:ClearAllPoints()
+  local p = A.db.selfPos
+  if p then
+    local sc = UIParent:GetEffectiveScale() / s:GetEffectiveScale()
+    s:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", p.left * sc, p.top * sc)
+  else
+    s:SetPoint("TOP", UIParent, "CENTER", 0, -110)
+  end
+end
+
+function F:PaintSelf(now)
+  local s, db = self.selfRow, A.db
+  if not s then return end
+  local me = db.selfDr and A:MeNow() or nil
+  local n = me and A.DrList(me, s.keys) or 0
+  local unlocked = db.selfDr and (not db.locked or A.test) and true or false
+  if n == 0 and not unlocked then
+    if s.on then
+      s:Hide()
+      s.on = nil
+    end
+    return
+  end
+  local size = db.selfDrSize
+  local cells = unlocked and math.max(n, 3) or n
+  local w = cells * (size + 3) - 3
+  if s.w ~= w or s.h ~= size then
+    s.w, s.h = w, size
+    s:SetWidth(w)
+    s:SetHeight(size)
+  end
+  if s.unlocked ~= unlocked then
+    s.unlocked = unlocked
+    s:EnableMouse(unlocked)
+    if unlocked then
+      s:SetBackdropColor(0.05, 0.1, 0.2, 0.45)
+      s:SetBackdropBorderColor(0.2, 0.6, 1, 0.9)
+    else
+      s:SetBackdropColor(0, 0, 0, 0)
+      s:SetBackdropBorderColor(0, 0, 0, 0)
+    end
+  end
+  if n == 0 then s.hint:Show() else s.hint:Hide() end
+  local px = I.Pixel(s)
+  for k = 1, n do
+    local b = s.icons[k]
+    if not b then
+      b = I.New(s)
+      b.v = {}
+      s.icons[k] = b
+    end
+    I.Place(b, s, (k - 1) * (size + 3) + size / 2, -size / 2, size, px)
+    F.PaintDr(b, me.dr[s.keys[k]], now)
+  end
+  for k = n + 1, table.getn(s.icons) do s.icons[k]:Hide() end
+  s.n = n
+  if not s.on then
+    s:Show()
+    s.on = true
+  end
+end
+
 -- Everything with a clock on it. Runs 10 times a second, every frame while something
 -- on the frame is animating.
 function F:PaintNumbers(f, e, db, now)
@@ -916,23 +1055,7 @@ function F:PaintNumbers(f, e, db, now)
   for k = 1, f.drN or 0 do
     local b = f.drIcons[k]
     local dr = e.dr[f.drKeys[k]]
-    if dr then
-      local v = b.v
-      local left = dr.stop and (dr.stop - now) or 0
-      if left < 0 then left = 0 end
-      v.s, v.left, v.dur, v.start, v.used, v.solid, v.tex = nil, left, A.DR_WINDOW, dr.stop and (dr.stop - A.DR_WINDOW) or nil, true, true, dr.tex
-      v.kind = "dr" .. math.min(dr.level, 3)
-      I.Paint(b, v, now)
-      -- the stage: what the next one would land at
-      local word = dr.level >= 3 and "IMM" or (dr.level == 2 and "25%" or "50%")
-      if b.lastTag ~= word then
-        b.lastTag = word
-        b.tag:SetText(word)
-        local c = A.KIND_COLOR[v.kind]
-        b.tag:SetTextColor(c[1], c[2], c[3])
-      end
-      b.tag:Show()
-    end
+    if dr then F.PaintDr(b, dr, now) end
   end
   for k = 1, f.stripN or 0 do
     local b = f.stripIcons[k]
@@ -1180,6 +1303,7 @@ local function NumbersOne(self, f, e, db, now)
 end
 
 function F:Numbers(now)
+  self:PaintSelf(now)
   self:Each(NumbersOne, now)
 end
 

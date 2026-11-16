@@ -298,6 +298,12 @@ function A:TestTick(now)
     return
   end
   self.testNext = now + 0.7 + math.random() * 1.1
+  -- crowd control on you, now and then, so your own row can be seen and placed
+  if self.testMe and self.db.selfDr and self.AuraAdded and math.random(1, 3) == 1 then
+    local id = CC_SAMPLES[math.random(1, table.getn(CC_SAMPLES))]
+    local def = A.AURAS[id]
+    if def and A.DR_KINDS[def.k] and not self.testMe.auras[id] then self:AuraAdded(self.testMe, id, def, now, true) end
+  end
   local i = math.random(1, self:Max())
   local e = self.testEnemies[i]
   if not e then return end

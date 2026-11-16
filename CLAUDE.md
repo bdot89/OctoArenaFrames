@@ -149,6 +149,18 @@ cap on all crowd control (measured on few spells); ClassicAPI FocusUnit with a G
 enemies; SetDesaturated; Middle-click on a Button; trinket 180 s.
 Ask for `/oaf probe` and `/oaf errors` first with any report.
 
+## 1.0.8 (16 Nov 2026, NOT seen in game). User, sapped in a duel: "nothing showing on my screen ... surely it should show for me and the rogue who is sapping me"
+- Cause: crowd control was only read on enemies in slots (never on you), and outside arenas nothing fills a slot.
+- On YOU: `A:MeNow()` (A.me / A.testMe), `A:ScanSelf` (ClassicAPI C_UnitAuras.GetUnitAuras("player", "HARMFUL")
+  for ids + end times, else UnitDebuff: ids with SuperWoW, pictures without), `A:SelfTick` 5 Hz + PLAYER_AURAS_CHANGED.
+  Row `F.selfRow` (OctoArenaFramesSelf, on UIParent so it shows anywhere; `db.selfDr`, `selfDrSize` 40, `selfPos`,
+  default under screen centre; a box to drag while unlocked / in a test). ClassicAPI has no DR call of its own.
+- Duels: DUEL_REQUESTED / the "Duel starting:" line -> `A.duel`; MayFill lets the first attackable player take a
+  slot (`A.duelSlot`), DUEL_FINISHED gives it back. `db.duelFill` (no switch in the options yet).
+- Enemy DR icons: `F.PaintDr` (shared with your row): 2 px edge + word in the stage colour, countdown at the top,
+  never greyed. Size `db.drSize` 32 (saved 23 moved once, db.drV), strip keeps `db.stripSize` 23; Metrics m.drY /
+  m.drSize: DR sits under the strip and may reach down beside the cast bar / cooldown row.
+
 ## 1.0.7 (15 Nov 2026): release pictures + Spells box
 - docs\ (export-ignored): tools\MakeShots.ps1 crops the user's /oaf test screenshots (2560x1600, 15 Nov) into
   page-*.jpg / frames-*.jpg; docs\src\banner.html (pfUI Octo's banner style, fonts from ..\pfUI\fonts) rendered by

@@ -14,7 +14,7 @@
 -- See CLAUDE.md.
 
 local A = OctoArenaFrames
-A.VERSION = "1.0.7"
+A.VERSION = "1.0.8"
 A.MAX = 5              -- the most enemies (5v5)
 
 A.FORMATS = {
@@ -118,7 +118,10 @@ A.DEFAULTS = {
   -- cast bar
   cast = true, castH = 16, castIcon = true, castTime = true, castSchool = true, kickMark = true, lockout = true,
   -- auras
-  big = true, immuneGlow = true, strip = true, stripMax = 3, dr = true, drSize = 23,
+  big = true, immuneGlow = true, strip = true, stripMax = 3, stripSize = 23, dr = true, drSize = 32,
+  -- crowd control on YOU: its own row, anywhere (duels, world, arenas), movable while unlocked
+  selfDr = true, selfDrSize = 40, selfPos = nil,
+  duelFill = true,               -- a duel opponent gets a frame for the length of the duel
   buffs = true, buffSize = 20, buffMax = 8,   -- the enemy's buffs in a row above the frame
   -- cooldown row
   cdRow = true, cdSize = 24, cdSpacing = 2, cdPerRow = 10, showReady = true, showTalents = true,
@@ -581,6 +584,12 @@ function A:Init()
     if OctoArenaDB.mouseCast == "kicks" then OctoArenaDB.mouseCast = "harmful" end
     OctoArenaDB.mouseCastV = 2
   end
+  -- 1.0.8: diminishing returns were hard to see (user, 16 Nov); the old size 23 was
+  -- saved into everyone's settings, so it is moved on once
+  if not OctoArenaDB.drV then
+    if OctoArenaDB.drSize == 23 then OctoArenaDB.drSize = 32 end
+    OctoArenaDB.drV = 2
+  end
   self.global = OctoArenaGlobal
   if type(self.global.profiles) ~= "table" then self.global.profiles = {} end
   if type(self.global.learned) ~= "table" then self.global.learned = {} end
@@ -655,7 +664,7 @@ SlashCmdList["OCTOARENAFRAMES"] = function(msg)
   elseif cmd == "test" then
     A:SetTest(not A.test)
   elseif cmd == "reset" then
-    A.db.pos, A.db.bgPos, A.db.intPos = nil, nil, nil
+    A.db.pos, A.db.bgPos, A.db.intPos, A.db.selfPos = nil, nil, nil, nil
     A.db.locked = false
     A.Frames:Place()
     A.Bars:Place()

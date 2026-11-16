@@ -133,7 +133,8 @@ local function CheckLayout(label)
     end
   end
   ok(m.pitch > m.total, label .. ": enemies do not touch")
-  ok(db.drSize * 2 <= m.H + 2, label .. ": aura strip and DR rows fit beside the frame")
+  ok(m.drY + m.drSize <= m.total + 0.01 and m.drY >= m.stripSize, label .. ": aura strip and DR rows fit beside the frame")
+  ok(m.drSize >= 23, label .. ": DR icons no smaller than they were")
 end
 CheckLayout("defaults")
 A.db.cdSize, A.db.cdPerRow = 32, 12
@@ -1424,6 +1425,92 @@ A:SetTest(false)
 A:SetFormat("auto")
 A:ResetLayout()
 Mock.Tick(0.1)
+
+-- ---------------------------------------------------------------- crowd control on YOU (16 Nov)
+-- "i am testing being sapped at the moment and there is nothing showing on my screen"
+A.db.locked = true
+A:Changed()
+Mock.Tick(0.3)
+local row = F.selfRow
+ok(row and not row.on, "your own row: hidden while nothing is on you")
+local oldPlayer = Mock.units["player"]
+local pu = oldPlayer or {}
+Mock.units["player"] = pu
+pu.debuffs = { { id = 11297 } }
+Mock.Fire("PLAYER_AURAS_CHANGED")
+ok(A.me and A.me.dr.incap and A.me.dr.incap.level == 1, "sapped: counted at once")
+Mock.Tick(0.3)
+ok(row.on and row.n == 1 and row.icons[1].lastTag == "50%", "sapped: an icon on your row, next one 50%")
+ok(row.icons[1].tex.texture == A.AURAS[11297].texture, "it is the Sap picture")
+ok(row.icons[1].base == A.db.selfDrSize and A.db.selfDrSize >= 36, "and it is big")
+pu.debuffs = {}
+Mock.Tick(0.3)
+ok(row.on and A.me.dr.incap.stop, "Sap over: the icon stays while the count runs")
+pu.debuffs = { { id = 11297 } }
+Mock.Tick(0.3)
+ok(row.icons[1].lastTag == "25%", "sapped again inside 15 s: next one 25%")
+pu.debuffs = {}
+Mock.Tick(16)
+ok(not row.on and A.me.dr.incap.level == 0, "15 s later: reset, row gone")
+-- ClassicAPI: ids and end times without SuperWoW
+C_UnitAuras = { GetUnitAuras = function(u, filter)
+  if u == "player" and filter == "HARMFUL" then return { { spellId = 12826, expirationTime = GetTime() + 9 } } end
+  return {}
+end }
+Mock.Tick(0.3)
+ok(A.me.dr.incap.level == 1 and A.me.auras[12826], "ClassicAPI's list: Polymorph on you counted")
+near(A.me.auras[12826].stop - GetTime(), 9, "with its real end time")
+C_UnitAuras = nil
+Mock.Tick(16.5)
+A.db.selfDr = false
+pu.debuffs = { { id = 11297 } }
+Mock.Tick(0.3)
+ok(not row.on, "switched off: nothing")
+A.db.selfDr = true
+pu.debuffs = nil
+Mock.units["player"] = oldPlayer
+A.me = nil
+-- unlocked: a box to drag, even with nothing on you
+A.db.locked = false
+Mock.Tick(0.3)
+ok(row.on and row.unlocked and row.n == 0, "unlocked: the row shows as a box to place")
+A.db.locked = true
+Mock.Tick(0.3)
+ok(not row.on, "locked again: gone")
+-- the test fills it
+A:SetTest(true, true)
+ok(A:MeNow() == A.testMe, "test mode: sample crowd control on you")
+A:AuraAdded(A.testMe, 12826, A.AURAS[12826], GetTime(), true)
+Mock.Tick(0.3)
+ok(row.on and row.n >= 1, "and it shows on your row")
+A:SetTest(false)
+
+-- enemy DR icons: bigger than before, under the aura strip
+local md = F.Metrics(A.db)
+ok(md.drSize == 32 and md.drY == A.db.stripSize + md.gap, "enemy DR icons 32 px, under the strip")
+OctoArenaDB.drV, OctoArenaDB.drSize = nil, 23
+A.db = nil
+A:Init()
+ok(A.db.drSize == 32 and A.db.drV == 2, "an old saved 23 px is moved to 32 once")
+A.db.drSize = 26
+A.db = nil
+A:Init()
+ok(A.db.drSize == 26, "and a size you picked later is kept")
+
+-- a duel: the opponent gets a frame, and gives it back
+A:ClearSlots()
+local zoneWas, fillWas = A.zone, A.db.worldFill
+A.zone, A.db.worldFill = "none", false
+ok(not A:MayFill(), "outside an arena nothing fills by itself (zone " .. tostring(zoneWas) .. ", world fill " .. tostring(fillWas) .. ")")
+Mock.Fire("CHAT_MSG_SYSTEM", "Duel starting: 3")
+ok(A.duel and A:MayFill(), "duel countdown: the opponent may take a frame")
+local de = A:AutoFill("Stabber", nil, "ROGUE")
+ok(de and A.duelSlot == de.i and not A:MayFill(), "one opponent, no more")
+ok(F:ShouldShow(), "frames show for the duel")
+Mock.Fire("DUEL_FINISHED")
+ok(not A.duel and not A.duelSlot and not A.db.slots[1].name, "duel over: the frame is given back")
+A.db.drSize = 32
+A.zone, A.db.worldFill = zoneWas, fillWas
 
 -- ---------------------------------------------------------------- the end
 if table.getn(A.errors) > 0 then

@@ -646,6 +646,13 @@ function O:BuildFrames(p)
   g, s = Num("immuneGlow") R:Add(Switch(p, "Gold edge while immune", g, s, "Ice Block, Divine Shield..."), 1)
   g, s = Num("strip") R:Add(Switch(p, "Other auras beside the frame", g, s), 1)
   g, s = Num("dr") R:Add(Switch(p, "Diminishing returns", g, s, "What the next one lands at: 50%, 25%, IMM. The timer is when it resets."), 1)
+  g, s = Num("drSize") R:Add(Slider(p, "Diminishing returns size", 18, 56, 1, g, s, pxs))
+
+  L:Add(Heading(p, "On you"), 4)
+  g, s = Num("selfDr") L:Add(Switch(p, "Your own diminishing returns", g, s,
+    "A row of its own for crowd control on YOU, anywhere: what the next Sap, Polymorph or stun on you lands at "
+    .. "(50%, 25%, IMM) and when it resets. Unlock the frames to drag it where you want it.", 250), 1)
+  g, s = Num("selfDrSize") L:Add(Slider(p, "Size", 24, 72, 2, g, s, pxs))
 end
 
 -- ---------------------------------------------------------------- Cooldowns

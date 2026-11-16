@@ -314,7 +314,78 @@ function A:AuraTick(now)
       end
     end
   end
+  self:SelfTick(now)
 end
+
+-- ---------------------------------------------------------------- crowd control on YOU
+-- The same count for yourself: what the next Sap, Polymorph or stun on you lands at.
+-- Read from your own debuffs, anywhere (duels, world, battlegrounds, arenas).
+
+function A:MeNow()
+  if self.test then return self.testMe end
+  if not self.me then self.me = A.NewEnemy(0) end
+  return self.me
+end
+
+function A:ScanSelf(now)
+  local e = self:MeNow()
+  if not e then return end
+  for k in pairs(seen) do seen[k] = nil end
+  local function Take(sid, tex, ends)
+    local def = sid and A.AURAS[sid]
+    if not def and not sid and tex then def = A.AURA_TEX[string.lower(tex)] end
+    if not def or not A.DR_KINDS[def.k] then return end
+    local key = sid or def.n
+    seen[key] = true
+    local a = e.auras[key]
+    if not a then a = self:AuraAdded(e, key, def, now, true) end
+    -- ClassicAPI knows when it really ends (the server's own halving included)
+    if ends and ends > now then a.stop, a.dur = ends, a.dur or (ends - now) end
+  end
+  -- ClassicAPI's list has spell ids and end times even without SuperWoW; else the
+  -- game's own debuff slots (ids with SuperWoW, pictures without)
+  local done
+  if C_UnitAuras and C_UnitAuras.GetUnitAuras then
+    local ok, got = pcall(C_UnitAuras.GetUnitAuras, "player", "HARMFUL")
+    if ok and type(got) == "table" then
+      done = true
+      for i = 1, table.getn(got) do
+        local x = got[i]
+        if type(x) == "table" and x.spellId then Take(x.spellId, nil, x.expirationTime) end
+      end
+    end
+  end
+  if not done then
+    for i = 1, 16 do
+      local tex, _, _, sid = UnitDebuff("player", i)
+      if not tex then break end
+      Take(sid, tex)
+    end
+  end
+  for key, a in pairs(e.auras) do
+    if not seen[key] then self:AuraRemoved(e, key, a, now) end
+  end
+end
+
+function A:SelfTick(now)
+  if not self.db.selfDr then return end
+  local e = self:MeNow()
+  if not e then return end
+  if self.test then
+    -- samples: the timers decide (what has no timer goes after a few seconds)
+    for key, a in pairs(e.auras) do
+      if (a.stop and now >= a.stop) or (not a.stop and now - a.start > 4) then self:AuraRemoved(e, key, a, now) end
+    end
+  else
+    self:ScanSelf(now)
+  end
+  for _, dr in pairs(e.dr) do
+    if dr.stop and now >= dr.stop then dr.level, dr.stop, dr.active = 0, nil, 0 end
+  end
+end
+A:On("PLAYER_AURAS_CHANGED", function()
+  if A.db.selfDr and not A.test then A:ScanSelf(GetTime()) end
+end)
 
 -- The diminishing returns worth showing, in a fixed order.
 function A.DrList(e, out)

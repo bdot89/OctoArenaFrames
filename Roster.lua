@@ -279,8 +279,36 @@ end
 
 function A:MayFill()
   if self.test or self:IsBG() or self.db.mode ~= "auto" then return false end
-  return self.zone == "arena" or self.db.worldFill
+  if self.zone == "arena" or self.db.worldFill then return true end
+  -- a duel: the one opponent gets a frame
+  return (self.duel and self.db.duelFill and not self.duelSlot) and true or false
 end
+
+-- ---------------------------------------------------------------- duels
+-- Outside arenas nothing fills by itself, so a duel showed no frame at all (user, 16
+-- Nov: sapped in a duel, "nothing showing"). From the countdown on, the first player
+-- you can attack takes a frame; it goes again when the duel ends.
+function A:StartDuel()
+  if self.duel then return end
+  self.duel = true
+  self:Changed()
+end
+
+function A:EndDuel()
+  local i = self.duelSlot
+  self.duel, self.duelSlot = nil, nil
+  if i and self.zone ~= "arena" and self.db.slots[i].auto then self:SetSlot(i, nil) end
+  self:Changed()
+end
+
+A:On("DUEL_REQUESTED", function() A:StartDuel() end)
+A:On("DUEL_FINISHED", function() A:EndDuel() end)
+A:On("CHAT_MSG_SYSTEM", function(msg)
+  local fmt = DUEL_COUNTDOWN or "Duel starting: %d"
+  local at = string.find(fmt, "%d", 1, true)
+  local head = at and string.sub(fmt, 1, at - 1) or fmt
+  if msg and head ~= "" and string.sub(msg, 1, string.len(head)) == head then A:StartDuel() end
+end)
 
 -- The first free slot takes this enemy; a fixed format's slots lock when full.
 function A:AutoFill(name, guid, class)
@@ -293,6 +321,7 @@ function A:AutoFill(name, guid, class)
   for i = 1, cap do
     if not self.db.slots[i].name then
       self:SetSlot(i, name, class, true)
+      if self.duel and self.zone ~= "arena" and not self.db.worldFill then self.duelSlot = i end
       local e = self.enemies[i]
       if guid then self:Bind(e, guid) end
       if self.db.printChat then self:Print("Enemy " .. i .. " is " .. e.name .. ".") end
@@ -480,6 +509,7 @@ end
 function A:SetTest(on, full)
   if on then
     self.testEnemies = {}
+    self.testMe = NewEnemy(0)
     for i = 1, A.MAX do
       local e = NewEnemy(i)
       local real = self.db.slots[i]

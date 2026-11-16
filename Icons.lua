@@ -117,10 +117,11 @@ local function Frame(b, r, g, bl, a, px, borderPx)
   b.shadow:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 2 * px, -2 * px)
 end
 
-local function Countdown(b, left, size)
+local function Countdown(b, left, size, pos)
   local db = A.db
+  pos = pos or db.numPos
   local fs = math.max(8, math.floor(size * db.numSize / 100))
-  local key = db.numFont .. fs .. db.numOutline .. db.numPos
+  local key = db.numFont .. fs .. db.numOutline .. pos
   if b.fontKey ~= key then
     b.text:SetFont(A.FontFile(db.numFont), fs, db.numOutline ~= "NONE" and db.numOutline or "")
     if db.numOutline == "NONE" then
@@ -129,7 +130,7 @@ local function Countdown(b, left, size)
     else
       b.text:SetShadowOffset(0, 0)
     end
-    local p = NUM_POINTS[db.numPos] or NUM_POINTS.CENTER
+    local p = NUM_POINTS[pos] or NUM_POINTS.CENTER
     b.text:ClearAllPoints()
     b.text:SetPoint(p[1], b, p[1], p[2], p[3])
     b.fontKey = key
@@ -162,7 +163,8 @@ local function NoCountdown(b)
 end
 
 -- Paints icon b. v = { s (spell), left, dur, start, used, unknown, flash, gone (0..1),
--- class, dim, tex (a picture of its own), kind (border colour of its own) }.
+-- class, dim, tex (a picture of its own), kind (border colour of its own), own (always
+-- that colour), borderPx, bright (never greyed), numPos (where the countdown sits) }.
 function I.Paint(b, v, now)
   local db = A.db
   local s = v.s
@@ -182,15 +184,17 @@ function I.Paint(b, v, now)
   -- border and shadow, on whole pixels
   local r, g, bl = 0, 0, 0
   local kind = v.kind or (s and s.k)
-  if db.border == "kind" and kind then
+  -- v.own: the colour is the message (a diminishing-returns stage), whatever the border setting
+  local bp = v.borderPx or db.borderPx
+  if (db.border == "kind" or v.own) and kind then
     local c = A.KIND_COLOR[kind] or A.KIND_COLOR.utility
     r, g, bl = c[1], c[2], c[3]
   elseif db.border == "class" and v.class then
     local c = A.CLASS_COLOR[v.class]
     if c then r, g, bl = c[1], c[2], c[3] end
   end
-  if db.borderPx > 0 and db.border ~= "none" then
-    Frame(b, r, g, bl, 1, px, db.borderPx)
+  if v.own or (db.borderPx > 0 and db.border ~= "none") then
+    Frame(b, r, g, bl, 1, px, bp)
   else
     Frame(b, 0, 0, 0, 1, px, 1)
   end
@@ -218,7 +222,7 @@ function I.Paint(b, v, now)
     b.cdStart, b.cdDur = nil, nil
   end
   if cooling and db.sweep == "fill" and v.dur and v.dur > 0 then
-    local inner = b.sz - 2 * db.borderPx * px
+    local inner = b.sz - 2 * bp * px
     b.fill:ClearAllPoints()
     b.fill:SetPoint("TOPLEFT", b.tex, "TOPLEFT", 0, 0)
     b.fill:SetPoint("TOPRIGHT", b.tex, "TOPRIGHT", 0, 0)
@@ -229,13 +233,13 @@ function I.Paint(b, v, now)
     b.fill:Hide()
     b.fillOn = false
   end
-  local desat = cooling and db.desat and true or false
+  local desat = cooling and db.desat and not v.bright and true or false
   if b.desat ~= desat then
     b.tex:SetDesaturated(desat)
     b.desat = desat
   end
   -- countdown
-  if cooling and db.showText and not v.noNumber then Countdown(b, v.left, size) else NoCountdown(b) end
+  if cooling and db.showText and not v.noNumber then Countdown(b, v.left, size, v.numPos) else NoCountdown(b) end
   -- talent / pet spell not seen yet
   local unknown = v.unknown and true or false
   if b.unknownOn ~= unknown then
